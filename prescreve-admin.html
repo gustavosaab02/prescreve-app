@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>prescreve. — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --bg:#0d0f12;
+    --surface:#151820;
+    --surface2:#1c2030;
+    --border:#ffffff12;
+    --border2:#ffffff20;
+    --sage:#4a7c6f;
+    --sage-light:#6aab9a;
+    --accent:#5dbeaa;
+    --text:#f0f2f5;
+    --text2:#8b93a8;
+    --text3:#555e70;
+    --red:#e05555;
+    --red-bg:#e0555520;
+    --green:#5dbe8a;
+    --green-bg:#5dbe8a20;
+    --warn:#e0a455;
+    --warn-bg:#e0a45520;
+    --blue:#5d8abe;
+    --blue-bg:#5d8abe20;
+  }
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* LOGIN */
+  #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
+  .login-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:100%;max-width:380px;}
+  .login-logo{font-family:'Fraunces',serif;font-size:28px;font-weight:700;color:var(--text);margin-bottom:8px;}
+  .login-logo span{color:var(--accent);}
+  .login-sub{font-size:13px;color:var(--text2);margin-bottom:32px;}
+  .login-input{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;margin-bottom:12px;outline:none;}
+  .login-input:focus{border-color:var(--accent);}
+  .login-btn{width:100%;padding:13px;background:var(--accent);border:none;border-radius:10px;color:#0d0f12;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;}
+  .login-err{font-size:12px;color:var(--red);margin-top:8px;display:none;}
+
+  /* LAYOUT */
+  #adminApp{display:none;min-height:100vh;}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:10;}
+  .sidebar-logo{padding:24px 20px 20px;font-family:'Fraunces',serif;font-size:20px;font-weight:700;border-bottom:1px solid var(--border);}
+  .sidebar-logo span{color:var(--accent);}
+  .sidebar-badge{font-size:10px;font-weight:600;background:var(--accent);color:#0d0f12;padding:2px 7px;border-radius:20px;margin-left:8px;vertical-align:middle;}
+  .nav-links{padding:16px 0;flex:1;}
+  .nav-link{display:flex;align-items:center;gap:10px;padding:11px 20px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:all 0.15s;border-left:2px solid transparent;}
+  .nav-link:hover{color:var(--text);background:var(--surface2);}
+  .nav-link.active{color:var(--accent);background:var(--surface2);border-left-color:var(--accent);}
+  .nav-link .icon{font-size:16px;width:20px;text-align:center;}
+  .sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);}
+
+  .main{margin-left:220px;padding:32px;min-height:100vh;}
+  .page{display:none;}
+  .page.active{display:block;}
+
+  .page-title{font-family:'Fraunces',serif;font-size:26px;font-weight:600;margin-bottom:6px;}
+  .page-sub{font-size:13px;color:var(--text2);margin-bottom:28px;}
+
+  /* METRICS */
+  .metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;}
+  .metric-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;}
+  .metric-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+  .metric-value{font-size:28px;font-weight:700;font-family:'Fraunces',serif;color:var(--text);}
+  .metric-sub{font-size:12px;color:var(--text2);margin-top:4px;}
+  .metric-card.accent .metric-value{color:var(--accent);}
+  .metric-card.green .metric-value{color:var(--green);}
+  .metric-card.warn .metric-value{color:var(--warn);}
+  .metric-card.red .metric-value{color:var(--red);}
+
+  /* TABLE */
+  .table-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:24px;}
+  .table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .table-title{font-size:14px;font-weight:600;color:var(--text);}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;}
+  th{padding:11px 16px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;text-align:left;border-bottom:1px solid var(--border);}
+  td{padding:13px 16px;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--surface2);}
+
+  /* BADGES */
+  .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+  .badge-green{background:var(--green-bg);color:var(--green);}
+  .badge-red{background:var(--red-bg);color:var(--red);}
+  .badge-warn{background:var(--warn-bg);color:var(--warn);}
+  .badge-blue{background:var(--blue-bg);color:var(--blue);}
+  .badge-gray{background:#ffffff10;color:var(--text2);}
+
+  /* BUTTONS */
+  .btn{padding:8px 14px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+  .btn-accent{background:var(--accent);color:#0d0f12;}
+  .btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-red{background:var(--red-bg);color:var(--red);}
+  .btn-green{background:var(--green-bg);color:var(--green);}
+  .btn-sm{padding:5px 10px;font-size:11px;}
+
+  /* SEARCH */
+  .search-input{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 14px;outline:none;width:240px;}
+  .search-input:focus{border-color:var(--accent);}
+  .search-input::placeholder{color:var(--text3);}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:28px;width:100%;max-width:480px;}
+  .modal-title{font-family:'Fraunces',serif;font-size:20px;font-weight:600;margin-bottom:4px;}
+  .modal-sub{font-size:13px;color:var(--text2);margin-bottom:24px;}
+  .form-group{margin-bottom:14px;}
+  .form-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block;}
+  .form-input{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
+  .form-input:focus{border-color:var(--accent);}
+  .form-select{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
+  .modal-footer{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+
+  /* TOP BAR */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+  .topbar-right{display:flex;align-items:center;gap:12px;}
+
+  /* LOADING */
+  .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .loading{display:flex;align-items:center;gap:10px;color:var(--text2);font-size:13px;padding:24px 20px;}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;font-size:13px;color:var(--text);z-index:200;opacity:0;transition:opacity 0.2s;pointer-events:none;}
+  .toast.show{opacity:1;}
+  .toast.success{border-color:var(--green);color:var(--green);}
+  .toast.error{border-color:var(--red);color:var(--red);}
+
+  /* EMPTY */
+  .empty{padding:40px;text-align:center;color:var(--text3);font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">prescreve<span>.</span></div>
+    <div class="login-sub">Painel administrativo</div>
+    <input class="login-input" type="password" id="adminPass" placeholder="Senha de acesso" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="loginErr">Senha incorreta</div>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="adminApp">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">prescreve<span>.</span> <span class="sidebar-badge">ADMIN</span></div>
+    <div class="nav-links">
+      <div class="nav-link active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="icon">📊</span> Dashboard</div>
+      <div class="nav-link" onclick="showPage('medicos')" id="nav-medicos"><span class="icon">👨‍⚕️</span> Médicos</div>
+      <div class="nav-link" onclick="showPage('pacientes')" id="nav-pacientes"><span class="icon">👥</span> Pacientes</div>
+      <div class="nav-link" onclick="showPage('recomendacoes')" id="nav-recomendacoes"><span class="icon">💊</span> Recomendações</div>
+      <div class="nav-link" onclick="showPage('produtos')" id="nav-produtos"><span class="icon">🛒</span> Produtos</div>
+    </div>
+    <div class="sidebar-footer">
+      <div style="margin-bottom:4px;font-weight:600;color:var(--text2);">prescreve. admin</div>
+      <div style="cursor:pointer;color:var(--text3);" onclick="doLogout()">← Sair</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">Visão geral da plataforma</div>
+      <div class="metrics-grid" id="metricsGrid">
+        <div class="loading"><span class="spinner"></span> Carregando...</div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">Produtos mais recomendados</div></div>
+        <div id="topProductsTable"><div class="loading"><span class="spinner"></span> Carregando...</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">Últimas recomendações</div></div>
+        <div id="latestRecsTable"><div class="loading"><span class="spinner"></span> Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- MÉDICOS -->
+    <div class="page" id="page-medicos">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Médicos</div>
+          <div class="page-sub">Todos os médicos cadastrados</div>
+        </div>
+        <div class="topbar-right">
+          <input class="search-input" placeholder="Buscar médico..." oninput="filterMedicos(this.value)" id="medicoSearch">
+        </div>
+      </div>
+      <div class="table-card">
+        <div id="medicosTable"><div class="loading"><span class="spinner"></span> Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- PACIENTES -->
+    <div class="page" id="page-pacientes">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Pacientes</div>
+          <div class="page-sub">Todos os pacientes cadastrados</div>
+        </div>
+        <div class="topbar-right">
+          <input class="search-input" placeholder="Buscar paciente..." oninput="filterPacientes(this.value)" id="pacienteSearch">
+        </div>
+      </div>
+      <div class="table-card">
+        <div id="pacientesTable"><div class="loading"><span class="spinner"></span> Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- RECOMENDAÇÕES -->
+    <div class="page" id="page-recomendacoes">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Recomendações</div>
+          <div class="page-sub">Todas as recomendações e conversões</div>
+        </div>
+        <div class="topbar-right">
+          <select class="search-input" style="width:160px;" onchange="filterRecs(this.value)" id="recStatusFilter">
+            <option value="">Todos os status</option>
+            <option value="not_started">Não iniciado</option>
+            <option value="active">Em uso</option>
+            <option value="completed">Concluído</option>
+          </select>
+          <input class="search-input" placeholder="Buscar..." oninput="filterRecsSearch(this.value)" id="recSearch">
+        </div>
+      </div>
+      <div class="table-card">
+        <div id="recsTable"><div class="loading"><span class="spinner"></span> Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- PRODUTOS -->
+    <div class="page" id="page-produtos">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Produtos</div>
+          <div class="page-sub">Catálogo de produtos e links de afiliado</div>
+        </div>
+        <div class="topbar-right">
+          <input class="search-input" placeholder="Buscar produto..." oninput="filterProdutos(this.value)" id="produtoSearch">
+          <button class="btn btn-accent" onclick="openAddProduct()">+ Novo produto</button>
+        </div>
+      </div>
+      <div class="table-card">
+        <div id="produtosTable"><div class="loading"><span class="spinner"></span> Carregando...</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: Editar Produto -->
+<div class="modal-overlay" id="modalProduto">
+  <div class="modal">
+    <div class="modal-title" id="modalProdutoTitle">Novo Produto</div>
+    <div class="modal-sub">Preencha os dados do produto</div>
+    <div class="form-group">
+      <label class="form-label">Nome</label>
+      <input class="form-input" id="mpNome" placeholder="Ex: Minoxidil 5%">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Marca</label>
+      <input class="form-input" id="mpMarca" placeholder="Ex: Kirkland">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoria</label>
+      <select class="form-select" id="mpCategoria">
+        <option value="Queda de cabelo">Queda de cabelo</option>
+        <option value="Pele">Pele</option>
+        <option value="Acne">Acne</option>
+        <option value="Suplementos">Suplementos</option>
+        <option value="Outro">Outro</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Link de afiliado (purchase_url)</label>
+      <input class="form-input" id="mpUrl" placeholder="https://amzn.to/...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select class="form-select" id="mpAtivo">
+        <option value="true">Ativo</option>
+        <option value="false">Inativo</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalProduto')">Cancelar</button>
+      <button class="btn btn-accent" onclick="saveProduto()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://iwrfgdfxvyqdkqdtrrxg.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cmZnZGZ4dnlxZGtxZHRycnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNjIxMzEsImV4cCI6MjA4OTkzODEzMX0.kQr7K_W-B2bcEYgQpxIrNFhORyiYT6_SZkfpC4S_AfQ';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const ADMIN_PASS = 'prescreve2026';
+
+let allMedicos = [], allPacientes = [], allRecs = [], allProdutos = [];
+let editingProductId = null;
+
+// ── AUTH ──
+function doLogin() {
+  const pass = document.getElementById('adminPass').value;
+  if (pass === ADMIN_PASS) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'block';
+    loadAll();
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+  }
+}
+
+function doLogout() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('adminApp').style.display = 'none';
+  document.getElementById('adminPass').value = '';
+}
+
+// ── NAVIGATION ──
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page).classList.add('active');
+}
+
+// ── LOAD ALL ──
+async function loadAll() {
+  await Promise.all([loadMedicos(), loadPacientes(), loadRecs(), loadProdutos()]);
+  renderDashboard();
+}
+
+async function loadMedicos() {
+  const { data } = await sb.from('doctors').select('*').order('created_at', { ascending: false });
+  allMedicos = data || [];
+  renderMedicos();
+}
+
+async function loadPacientes() {
+  const { data } = await sb.from('patients').select('*').order('created_at', { ascending: false });
+  allPacientes = data || [];
+  renderPacientes();
+}
+
+async function loadRecs() {
+  const { data } = await sb.from('recommendations').select('*, doctors(name,specialty), patients(name,whatsapp), products(name,brand,purchase_url)').order('created_at', { ascending: false });
+  allRecs = data || [];
+  renderRecs();
+}
+
+async function loadProdutos() {
+  const { data } = await sb.from('products').select('*').order('name');
+  allProdutos = data || [];
+  renderProdutos();
+}
+
+// ── DASHBOARD ──
+function renderDashboard() {
+  const total = allRecs.length;
+  const ativos = allRecs.filter(r => r.status === 'active').length;
+  const convertidos = allRecs.filter(r => r.status === 'active' || r.status === 'completed').length;
+  const taxa = total > 0 ? Math.round(convertidos/total*100) : 0;
+  const semLink = allProdutos.filter(p => !p.purchase_url).length;
+
+  document.getElementById('metricsGrid').innerHTML = `
+    <div class="metric-card accent">
+      <div class="metric-label">Total médicos</div>
+      <div class="metric-value">${allMedicos.length}</div>
+      <div class="metric-sub">cadastrados</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total pacientes</div>
+      <div class="metric-value">${allPacientes.length}</div>
+      <div class="metric-sub">na plataforma</div>
+    </div>
+    <div class="metric-card green">
+      <div class="metric-label">Recomendações</div>
+      <div class="metric-value">${total}</div>
+      <div class="metric-sub">total enviadas</div>
+    </div>
+    <div class="metric-card accent">
+      <div class="metric-label">Em tratamento</div>
+      <div class="metric-value">${ativos}</div>
+      <div class="metric-sub">pacientes ativos</div>
+    </div>
+    <div class="metric-card ${taxa >= 50 ? 'green' : 'warn'}">
+      <div class="metric-label">Taxa de conversão</div>
+      <div class="metric-value">${taxa}%</div>
+      <div class="metric-sub">compraram</div>
+    </div>
+    <div class="metric-card ${semLink > 0 ? 'red' : 'green'}">
+      <div class="metric-label">Produtos sem link</div>
+      <div class="metric-value">${semLink}</div>
+      <div class="metric-sub">sem afiliado</div>
+    </div>
+  `;
+
+  // Top produtos
+  const prodCount = {};
+  allRecs.forEach(r => {
+    const name = r.products?.name || '-';
+    prodCount[name] = (prodCount[name]||0) + 1;
+  });
+  const topProds = Object.entries(prodCount).sort((a,b) => b[1]-a[1]).slice(0,5);
+  document.getElementById('topProductsTable').innerHTML = topProds.length ? `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Produto</th><th>Recomendações</th><th>%</th></tr></thead>
+      <tbody>${topProds.map(([name, count]) => `
+        <tr>
+          <td style="font-weight:600;">${name}</td>
+          <td>${count}</td>
+          <td><span class="badge badge-blue">${Math.round(count/total*100)}%</span></td>
+        </tr>`).join('')}</tbody>
+    </table></div>` : '<div class="empty">Nenhuma recomendação ainda</div>';
+
+  // Últimas recs
+  const latest = allRecs.slice(0,8);
+  document.getElementById('latestRecsTable').innerHTML = latest.length ? `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Produto</th><th>Médico</th><th>Paciente</th><th>Status</th><th>Data</th></tr></thead>
+      <tbody>${latest.map(r => `
+        <tr>
+          <td style="font-weight:600;">${r.products?.name||'-'}</td>
+          <td>${r.doctors?.name||'-'}</td>
+          <td>${r.patients?.name||'-'}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td style="color:var(--text2);">${formatDate(r.created_at)}</td>
+        </tr>`).join('')}</tbody>
+    </table></div>` : '<div class="empty">Nenhuma recomendação ainda</div>';
+}
+
+// ── MÉDICOS ──
+function renderMedicos(filtered) {
+  const docs = filtered !== undefined ? filtered : allMedicos;
+  const el = document.getElementById('medicosTable');
+  if (!docs.length) { el.innerHTML = '<div class="empty">Nenhum médico encontrado</div>'; return; }
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Nome</th><th>Email</th><th>Especialidade</th><th>CRM</th><th>Cadastro</th><th>Recomendações</th><th>Ações</th></tr></thead>
+    <tbody>${docs.map(d => {
+      const recCount = allRecs.filter(r => r.doctor_id === d.id).length;
+      const active = d.active !== false;
+      return `<tr>
+        <td style="font-weight:600;">${d.name||'-'}</td>
+        <td style="color:var(--text2);">${d.email||'-'}</td>
+        <td>${d.specialty||'-'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px;">${d.crm||'-'}</td>
+        <td style="color:var(--text2);">${formatDate(d.created_at)}</td>
+        <td><span class="badge badge-blue">${recCount}</span></td>
+        <td>
+          <button class="btn btn-sm ${active?'btn-red':'btn-green'}" onclick="toggleMedico('${d.id}',${active})">
+            ${active?'Desativar':'Ativar'}
+          </button>
+        </td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function filterMedicos(q) {
+  if (!q) { renderMedicos(); return; }
+  const qn = q.toLowerCase();
+  renderMedicos(allMedicos.filter(d => (d.name||'').toLowerCase().includes(qn) || (d.email||'').toLowerCase().includes(qn) || (d.specialty||'').toLowerCase().includes(qn)));
+}
+
+async function toggleMedico(id, currentActive) {
+  await sb.from('doctors').update({ active: !currentActive }).eq('id', id);
+  const d = allMedicos.find(d => d.id === id);
+  if (d) d.active = !currentActive;
+  renderMedicos();
+  showToast(currentActive ? 'Médico desativado' : 'Médico ativado', 'success');
+}
+
+// ── PACIENTES ──
+function renderPacientes(filtered) {
+  const pats = filtered !== undefined ? filtered : allPacientes;
+  const el = document.getElementById('pacientesTable');
+  if (!pats.length) { el.innerHTML = '<div class="empty">Nenhum paciente encontrado</div>'; return; }
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Nome</th><th>WhatsApp</th><th>Email</th><th>Cadastro</th><th>Recomendações</th></tr></thead>
+    <tbody>${pats.map(p => {
+      const recCount = allRecs.filter(r => r.patient_id === p.id).length;
+      return `<tr>
+        <td style="font-weight:600;">${p.name||'-'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px;">${p.whatsapp||'-'}</td>
+        <td style="color:var(--text2);">${p.email||'-'}</td>
+        <td style="color:var(--text2);">${formatDate(p.created_at)}</td>
+        <td><span class="badge badge-blue">${recCount}</span></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function filterPacientes(q) {
+  if (!q) { renderPacientes(); return; }
+  const qn = q.toLowerCase();
+  renderPacientes(allPacientes.filter(p => (p.name||'').toLowerCase().includes(qn) || (p.whatsapp||'').includes(qn)));
+}
+
+// ── RECOMENDAÇÕES ──
+let recStatusFilt = '', recSearchFilt = '';
+
+function filterRecs(status) { recStatusFilt = status; applyRecFilters(); }
+function filterRecsSearch(q) { recSearchFilt = q.toLowerCase(); applyRecFilters(); }
+
+function applyRecFilters() {
+  let recs = allRecs;
+  if (recStatusFilt) recs = recs.filter(r => r.status === recStatusFilt);
+  if (recSearchFilt) recs = recs.filter(r =>
+    (r.products?.name||'').toLowerCase().includes(recSearchFilt) ||
+    (r.doctors?.name||'').toLowerCase().includes(recSearchFilt) ||
+    (r.patients?.name||'').toLowerCase().includes(recSearchFilt)
+  );
+  renderRecs(recs);
+}
+
+function renderRecs(filtered) {
+  const recs = filtered !== undefined ? filtered : allRecs;
+  const el = document.getElementById('recsTable');
+  if (!recs.length) { el.innerHTML = '<div class="empty">Nenhuma recomendação encontrada</div>'; return; }
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Produto</th><th>Médico</th><th>Paciente</th><th>Dosagem</th><th>Status</th><th>Link</th><th>Data</th></tr></thead>
+    <tbody>${recs.map(r => `
+      <tr>
+        <td style="font-weight:600;">${r.products?.name||'-'}<br><span style="font-size:11px;color:var(--text2);">${r.products?.brand||''}</span></td>
+        <td>${r.doctors?.name||'-'}</td>
+        <td>${r.patients?.name||'-'}<br><span style="font-size:11px;color:var(--text2);">${r.patients?.whatsapp||''}</span></td>
+        <td style="color:var(--text2);font-size:12px;">${r.dosage||'-'} ${r.frequency?'· '+r.frequency:''}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>${r.products?.purchase_url ? '<span class="badge badge-green">✓ Link</span>' : '<span class="badge badge-red">Sem link</span>'}</td>
+        <td style="color:var(--text2);font-size:12px;">${formatDate(r.created_at)}</td>
+      </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ── PRODUTOS ──
+function renderProdutos(filtered) {
+  const prods = filtered !== undefined ? filtered : allProdutos;
+  const el = document.getElementById('produtosTable');
+  if (!prods.length) { el.innerHTML = '<div class="empty">Nenhum produto encontrado</div>'; return; }
+  el.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Nome</th><th>Marca</th><th>Categoria</th><th>Link afiliado</th><th>Status</th><th>Ações</th></tr></thead>
+    <tbody>${prods.map(p => `
+      <tr>
+        <td style="font-weight:600;">${p.name}</td>
+        <td>${p.brand||'-'}</td>
+        <td><span class="badge badge-gray">${p.category||'-'}</span></td>
+        <td>${p.purchase_url
+          ? `<a href="${p.purchase_url}" target="_blank" style="color:var(--accent);font-size:12px;text-decoration:none;">Ver link ↗</a>`
+          : '<span class="badge badge-red">Sem link</span>'}</td>
+        <td>${p.active !== false ? '<span class="badge badge-green">Ativo</span>' : '<span class="badge badge-red">Inativo</span>'}</td>
+        <td style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="editProduto('${p.id}')">Editar</button>
+          <button class="btn btn-sm ${p.active!==false?'btn-red':'btn-green'}" onclick="toggleProduto('${p.id}',${p.active!==false})">${p.active!==false?'Desativar':'Ativar'}</button>
+        </td>
+      </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function filterProdutos(q) {
+  if (!q) { renderProdutos(); return; }
+  const qn = q.toLowerCase();
+  renderProdutos(allProdutos.filter(p => p.name.toLowerCase().includes(qn) || (p.brand||'').toLowerCase().includes(qn) || (p.category||'').toLowerCase().includes(qn)));
+}
+
+function openAddProduct() {
+  editingProductId = null;
+  document.getElementById('modalProdutoTitle').textContent = 'Novo Produto';
+  document.getElementById('mpNome').value = '';
+  document.getElementById('mpMarca').value = '';
+  document.getElementById('mpUrl').value = '';
+  document.getElementById('mpAtivo').value = 'true';
+  openModal('modalProduto');
+}
+
+function editProduto(id) {
+  const p = allProdutos.find(p => p.id === id);
+  if (!p) return;
+  editingProductId = id;
+  document.getElementById('modalProdutoTitle').textContent = 'Editar Produto';
+  document.getElementById('mpNome').value = p.name;
+  document.getElementById('mpMarca').value = p.brand||'';
+  document.getElementById('mpCategoria').value = p.category||'Suplementos';
+  document.getElementById('mpUrl').value = p.purchase_url||'';
+  document.getElementById('mpAtivo').value = p.active !== false ? 'true' : 'false';
+  openModal('modalProduto');
+}
+
+async function saveProduto() {
+  const name = document.getElementById('mpNome').value.trim();
+  const brand = document.getElementById('mpMarca').value.trim();
+  const category = document.getElementById('mpCategoria').value;
+  const purchase_url = document.getElementById('mpUrl').value.trim();
+  const active = document.getElementById('mpAtivo').value === 'true';
+  if (!name) return showToast('Preencha o nome', 'error');
+  if (editingProductId) {
+    const { error } = await sb.from('products').update({ name, brand, category, purchase_url, active }).eq('id', editingProductId);
+    if (error) return showToast('Erro ao salvar', 'error');
+    const p = allProdutos.find(p => p.id === editingProductId);
+    if (p) Object.assign(p, { name, brand, category, purchase_url, active });
+    showToast('Produto atualizado!', 'success');
+  } else {
+    const { data, error } = await sb.from('products').insert([{ name, brand, category, purchase_url, active }]).select().single();
+    if (error) return showToast('Erro ao criar produto', 'error');
+    allProdutos.unshift(data);
+    showToast('Produto criado!', 'success');
+  }
+  closeModal('modalProduto');
+  renderProdutos();
+}
+
+async function toggleProduto(id, currentActive) {
+  await sb.from('products').update({ active: !currentActive }).eq('id', id);
+  const p = allProdutos.find(p => p.id === id);
+  if (p) p.active = !currentActive;
+  renderProdutos();
+  showToast(currentActive ? 'Produto desativado' : 'Produto ativado', 'success');
+}
+
+// ── HELPERS ──
+function statusBadge(status) {
+  if (status === 'active') return '<span class="badge badge-green">Em uso</span>';
+  if (status === 'completed') return '<span class="badge badge-gray">Concluído</span>';
+  return '<span class="badge badge-warn">Pendente</span>';
+}
+
+function formatDate(iso) {
+  if (!iso) return '-';
+  return new Date(iso).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast '+(type||'')+' show';
+  setTimeout(() => t.className = 'toast', 3000);
+}
+</script>
+</body>
+</html>
