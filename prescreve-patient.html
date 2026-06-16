@@ -1188,8 +1188,8 @@ function openSafe(url) {
 }
 
 const MARCAS_BUSCA = [
-  { chaves: ['nutrify'],      fn: q => 'https://www.nutrify.com.br?_q=' + encodeURIComponent(q) + '&map=ft' },
-  { chaves: ['maxtitanium', 'max titanium', 'max-titanium'], fn: q => 'https://www.maxtitanium.com.br?_q=' + encodeURIComponent(q) + '&map=ft' },
+  { chaves: ['nutrify'],      fn: q => { var s = q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.nutrify.com.br/' + s + '?_q=' + encodeURIComponent(q) + '&map=ft'; } },
+  { chaves: ['maxtitanium', 'max titanium', 'max-titanium'], fn: q => { var s = q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.maxtitanium.com.br/' + s + '?_q=' + encodeURIComponent(q) + '&map=ft'; } },
   { chaves: ['darkness'],     fn: q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q) },
 ];
 
