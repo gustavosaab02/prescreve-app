@@ -936,23 +936,17 @@ function ProdutoCard({ rec, showBuyBtn, onUpdateStatus, onLembrete, onBula, pati
   }
 
   const MARCAS_BUSCA = {
-    'nutrify.com.br':           q => 'https://www.nutrify.com.br/busca?q=' + encodeURIComponent(q),
-    'maxtitanium.com.br':       q => 'https://www.maxtitanium.com.br/catalogsearch/result/?q=' + encodeURIComponent(q),
-    'darkness.com.br':          q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q),
+    'nutrify.com.br':     q => 'https://www.nutrify.com.br/' + encodeURIComponent(q) + '?map=ft',
+    'maxtitanium.com.br': q => 'https://www.maxtitanium.com.br/catalogsearch/result/?q=' + encodeURIComponent(q),
+    'darkness.com.br':    q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q),
   };
 
   function buildBrandSearchUrl(siteUrl, productName, brandName) {
     if (siteUrl && /^https?:\/\/.+=\s*$/.test(siteUrl)) return siteUrl + encodeURIComponent(productName);
     if (siteUrl && /^https?:\/\/.+\?.+=.+/.test(siteUrl)) return siteUrl;
-    if (siteUrl) {
-      try {
-        const host = new URL(siteUrl).hostname.replace(/^www\./, '');
-        if (MARCAS_BUSCA[host]) return MARCAS_BUSCA[host](productName);
-      } catch(e) {}
-      const nomeNorm = (brandName || '').toLowerCase();
-      const marcaKey = Object.keys(MARCAS_BUSCA).find(k => nomeNorm.includes(k.split('.')[0]));
-      if (marcaKey) return MARCAS_BUSCA[marcaKey](productName);
-    }
+    const nomeNorm = (brandName || '').toLowerCase();
+    const marcaKey = Object.keys(MARCAS_BUSCA).find(k => nomeNorm.includes(k.split('.')[0]));
+    if (marcaKey) return MARCAS_BUSCA[marcaKey](productName);
     const q = [productName, brandName].filter(Boolean).join(' ');
     return 'https://www.google.com/search?q=' + encodeURIComponent(q);
   }

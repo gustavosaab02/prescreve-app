@@ -1077,7 +1077,7 @@ function renderHome(customRecs) {
         (r.marcas_sugeridas && r.marcas_sugeridas.length ?
           '<div style="font-size:11px;font-weight:700;color:#1D9E75;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Marcas sugeridas pelo seu médico</div>' +
           r.marcas_sugeridas.map(m => 
-            '<a href="' + buildBrandSearchUrl(m.site_url, pName, m.nome) + '" target="_blank" rel="noopener" onclick="console.log(\'[MARCA]\', this.href)" style="display:flex;align-items:center;justify-content:space-between;background:white;border-radius:12px;padding:12px 16px;margin-bottom:8px;text-decoration:none;border:1.5px solid #e8f5f0;">' +
+            '<a href="' + buildBrandSearchUrl(m.site_url, pName, m.nome) + '" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;background:white;border-radius:12px;padding:12px 16px;margin-bottom:8px;text-decoration:none;border:1.5px solid #e8f5f0;">' +
               '<div style="display:flex;align-items:center;gap:10px;">' +
                 '<div style="width:36px;height:36px;background:#e8f5f0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#1D9E75;">' + m.nome.charAt(0) + '</div>' +
                 '<span style="font-size:14px;font-weight:600;color:#0f1f1a;">' + m.nome + '</span>' +
@@ -1187,36 +1187,24 @@ function openSafe(url) {
 }
 
 const MARCAS_BUSCA = {
-  'nutrify.com.br':        q => 'https://www.nutrify.com.br/busca?q=' + encodeURIComponent(q),
-  'maxtitanium.com.br':    q => 'https://www.maxtitanium.com.br/catalogsearch/result/?q=' + encodeURIComponent(q),
-  'darkness.com.br':          q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q),
+  'nutrify.com.br':     q => 'https://www.nutrify.com.br/' + encodeURIComponent(q) + '?map=ft',
+  'maxtitanium.com.br': q => 'https://www.maxtitanium.com.br/catalogsearch/result/?q=' + encodeURIComponent(q),
+  'darkness.com.br':    q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q),
 };
 
 function buildBrandSearchUrl(siteUrl, productName, brandName) {
-  console.log('[marca]', { siteUrl, productName, brandName });
   // URL template terminando com = → appenda produto direto
-  if (siteUrl && /^https?:\/\/.+=\s*$/.test(siteUrl)) {
-    const r = siteUrl + encodeURIComponent(productName);
-    console.log('[marca] template ->', r); return r;
-  }
-  // URL já é de busca com valor (ex: ?q=creatina) → usa direto
-  if (siteUrl && /^https?:\/\/.+\?.+=.+/.test(siteUrl)) {
-    console.log('[marca] busca direta ->', siteUrl); return siteUrl;
-  }
-  // Tenta encontrar a marca pelo domínio da URL cadastrada
-  if (siteUrl) {
-    try {
-      const host = new URL(siteUrl).hostname.replace(/^www\./, '');
-      console.log('[marca] host:', host);
-      if (MARCAS_BUSCA[host]) { const r = MARCAS_BUSCA[host](productName); console.log('[marca] mapa domínio ->', r); return r; }
-    } catch(e) { console.log('[marca] URL inválida:', siteUrl); }
-    const nomeNorm = (brandName || '').toLowerCase();
-    const marcaKey = Object.keys(MARCAS_BUSCA).find(k => nomeNorm.includes(k.split('.')[0]));
-    if (marcaKey) { const r = MARCAS_BUSCA[marcaKey](productName); console.log('[marca] mapa nome ->', r); return r; }
-  }
+  if (siteUrl && /^https?:\/\/.+=\s*$/.test(siteUrl))
+    return siteUrl + encodeURIComponent(productName);
+  // URL já tem busca com valor (ex: ?q=creatina) → usa direto
+  if (siteUrl && /^https?:\/\/.+\?.+=.+/.test(siteUrl)) return siteUrl;
+  // Busca pelo nome da marca (independente da site_url)
+  const nomeNorm = (brandName || '').toLowerCase();
+  const marcaKey = Object.keys(MARCAS_BUSCA).find(k => nomeNorm.includes(k.split('.')[0]));
+  if (marcaKey) return MARCAS_BUSCA[marcaKey](productName);
+  // Fallback: Google com produto + marca
   const q = [productName, brandName].filter(Boolean).join(' ');
-  const r = 'https://www.google.com/search?q=' + encodeURIComponent(q);
-  console.log('[marca] fallback Google ->', r); return r;
+  return 'https://www.google.com/search?q=' + encodeURIComponent(q);
 }
 
 
