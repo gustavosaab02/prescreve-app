@@ -436,7 +436,6 @@ body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text)
 <div class="toast" id="toast"></div>
 
 <script>
-/* SYNKA_V11 */
 const SUPABASE_URL = 'https://iwrfgdfxvyqdkqdtrrxg.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cmZnZGZ4dnlxZGtxZHRycnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNjIxMzEsImV4cCI6MjA4OTkzODEzMX0.kQr7K_W-B2bcEYgQpxIrNFhORyiYT6_SZkfpC4S_AfQ';
 const { createClient } = supabase;
@@ -1188,8 +1187,8 @@ function openSafe(url) {
 }
 
 const MARCAS_BUSCA = [
-  { chaves: ['nutrify'],      fn: q => 'https://www.nutrify.com.br?_q=' + encodeURIComponent(q) + '&map=ft' },
-  { chaves: ['maxtitanium', 'max titanium', 'max-titanium'], fn: q => 'https://www.maxtitanium.com.br?_q=' + encodeURIComponent(q) + '&map=ft' },
+  { chaves: ['nutrify'],      fn: q => { var s = q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.nutrify.com.br/' + s + '?_q=' + encodeURIComponent(q) + '&map=ft'; } },
+  { chaves: ['maxtitanium', 'max titanium', 'max-titanium'], fn: q => { var s = q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.maxtitanium.com.br/' + s + '?_q=' + encodeURIComponent(q) + '&map=ft'; } },
   { chaves: ['darkness'],     fn: q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q) },
 ];
 
