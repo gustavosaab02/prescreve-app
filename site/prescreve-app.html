@@ -1,0 +1,2743 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>synka</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --sage: #4a7c6f; --sage-light: #6a9e8f; --sage-pale: #e8f2ef; --sage-dark: #2d5a50;
+  --dark: #0e1a16; --cream: #faf8f4; --white: #ffffff; --charcoal: #1a1a1a;
+  --mid: #5a5a5a; --light: #9a9a9a; --border: #e8e4df; --accent: #c17f3e;
+  --accent-light: #f5e8d6; --green: #2d7a47; --green-light: #d4edda;
+  --warn: #d4820a; --warn-light: #fef3dc; --red: #e05555; --red-light: #fdeaea;
+  --comp: #7c5a4a; --comp-light: #a07060; --comp-pale: #f2ece8; --comp-border: #d4b5a0;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'DM Sans', sans-serif; background: var(--cream); color: var(--charcoal); min-height: 100vh; }
+.auth-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--dark); padding:20px; }
+.auth-card { background:#1a2920; border-radius:20px; padding:40px; width:100%; max-width:400px; border:1px solid rgba(74,124,111,0.2); }
+.auth-logo { font-family:'Fraunces',serif; font-size:32px; font-weight:700; color:white; text-align:center; margin-bottom:6px; }
+.auth-logo span { color:var(--accent); }
+.auth-sub { text-align:center; font-size:13px; color:rgba(255,255,255,0.35); margin-bottom:32px; }
+.auth-tabs { display:flex; background:rgba(255,255,255,0.06); border-radius:10px; padding:3px; margin-bottom:24px; }
+.auth-tab { flex:1; padding:8px; text-align:center; font-size:13px; font-weight:600; color:rgba(255,255,255,0.35); cursor:pointer; border-radius:8px; transition:all 0.2s; }
+.auth-tab.active { background:var(--sage); color:white; }
+.field { margin-bottom:14px; }
+.field label { display:block; font-size:11px; font-weight:600; color:rgba(255,255,255,0.3); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+.field input { width:100%; background:rgba(255,255,255,0.06); border:1.5px solid rgba(255,255,255,0.1); border-radius:11px; padding:12px 14px; font-size:14px; font-family:'DM Sans',sans-serif; color:white; outline:none; transition:border-color 0.2s; }
+.field input:focus { border-color:var(--sage-light); }
+.field input::placeholder { color:rgba(255,255,255,0.2); }
+.btn-primary { width:100%; background:var(--sage); color:white; border:none; border-radius:12px; padding:14px; font-size:14px; font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer; margin-top:8px; transition:background 0.2s; }
+.btn-primary:hover { background:var(--sage-dark); }
+.btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+.auth-error { background:var(--red-light); color:var(--red); padding:10px 14px; border-radius:9px; font-size:13px; margin-bottom:14px; display:none; }
+.app { display:flex; min-height:100vh; }
+.sidebar { width:240px; background:var(--dark); display:flex; flex-direction:column; padding:24px 0; position:fixed; top:0; bottom:0; left:0; z-index:10; }
+.sidebar-logo { font-family:'Fraunces',serif; font-size:22px; font-weight:700; color:white; padding:0 20px 24px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.sidebar-logo span { color:var(--accent); }
+.sidebar-section { padding:16px 12px 8px; font-size:10px; font-weight:700; color:rgba(255,255,255,0.2); letter-spacing:1.5px; text-transform:uppercase; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:10px 20px; font-size:13px; font-weight:500; color:rgba(255,255,255,0.45); cursor:pointer; transition:all 0.15s; margin:1px 8px; border-radius:9px; }
+.nav-item:hover { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.8); }
+.nav-item.active { background:rgba(74,124,111,0.2); color:var(--sage-light); }
+.nav-icon { width:20px; height:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.sidebar-bottom { margin-top:auto; padding:16px 12px; border-top:1px solid rgba(255,255,255,0.06); }
+.user-info { display:flex; align-items:center; gap:10px; padding:8px; }
+.user-avatar { width:34px; height:34px; background:rgba(74,124,111,0.3); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; color:var(--sage-light); flex-shrink:0; }
+.user-name { font-size:12px; font-weight:600; color:rgba(255,255,255,0.7); }
+.user-role { font-size:10px; color:rgba(255,255,255,0.3); }
+.logout-btn { width:100%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.35); padding:8px; border-radius:9px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; margin-top:8px; transition:all 0.2s; }
+.logout-btn:hover { border-color:var(--red); color:var(--red); }
+.main { margin-left:240px; flex:1; padding:32px; }
+.page { display:none; } .page.active { display:block; }
+.page-header { margin-bottom:28px; }
+.page-title { font-family:'Fraunces',serif; font-size:24px; font-weight:600; color:var(--charcoal); margin-bottom:4px; }
+.page-sub { font-size:13px; color:var(--light); }
+.stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; }
+.stat-card { background:white; border-radius:16px; padding:20px; border:1px solid var(--border); }
+.stat-label { font-size:11px; font-weight:600; color:var(--light); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:8px; }
+.stat-num { font-family:'Fraunces',serif; font-size:36px; font-weight:700; color:var(--sage); line-height:1; margin-bottom:4px; }
+.stat-desc { font-size:12px; color:var(--light); }
+.card { background:white; border-radius:16px; border:1px solid var(--border); overflow:hidden; margin-bottom:20px; }
+.card-header { padding:18px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.card-title { font-size:14px; font-weight:600; color:var(--charcoal); }
+.card-body { padding:20px; }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; }
+th { text-align:left; font-size:11px; font-weight:700; color:var(--light); letter-spacing:0.8px; text-transform:uppercase; padding:10px 16px; background:#fafafa; border-bottom:1px solid var(--border); }
+td { padding:14px 16px; border-bottom:1px solid var(--border); font-size:13px; color:var(--charcoal); vertical-align:middle; }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:#fafef9; }
+.badge { display:inline-block; font-size:11px; font-weight:600; padding:3px 10px; border-radius:100px; }
+.badge-green { background:var(--green-light); color:var(--green); }
+.badge-warn { background:var(--warn-light); color:var(--warn); }
+.badge-gray { background:#f0f0f0; color:var(--mid); }
+.badge-red { background:var(--red-light); color:var(--red); }
+.badge-sage { background:var(--sage-pale); color:var(--sage); }
+.btn { display:inline-flex; align-items:center; gap:6px; padding:9px 16px; border-radius:10px; font-size:13px; font-weight:600; font-family:'DM Sans',sans-serif; border:none; cursor:pointer; transition:all 0.15s; }
+.btn-sage { background:var(--sage); color:white; } .btn-sage:hover { background:var(--sage-dark); }
+.btn-comp { background:var(--comp); color:white; } .btn-comp:hover { background:#5a3e2e; }
+.tipo-toggle { display:flex; background:#f5f5f2; border-radius:12px; padding:4px; gap:4px; margin-bottom:18px; border:1.5px solid var(--border); }
+.tipo-btn { flex:1; padding:9px 10px; border-radius:9px; font-size:12px; font-weight:600; border:none; cursor:pointer; transition:all 0.18s; background:none; color:var(--mid); display:flex; align-items:center; justify-content:center; gap:6px; }
+.tipo-btn.active-pronto { background:white; color:var(--sage-dark); box-shadow:0 1px 4px rgba(0,0,0,0.08); border:1.5px solid var(--sage-light); }
+.tipo-btn.active-comp { background:white; color:var(--comp); box-shadow:0 1px 4px rgba(0,0,0,0.08); border:1.5px solid var(--comp-border); }
+.comp-header { background:var(--comp-pale); border:1.5px solid var(--comp-border); border-radius:12px; padding:11px 14px; margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+.comp-header .title { font-size:12px; font-weight:700; color:var(--comp); margin-bottom:2px; }
+.comp-header .sub { font-size:11px; color:var(--mid); line-height:1.4; }
+.comp-section-label { font-size:11px; font-weight:700; color:var(--comp); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:10px; margin-top:4px; }
+.farmacia-select-list { background:var(--comp-pale); border:1.5px solid var(--comp-border); border-radius:14px; padding:14px; margin-bottom:14px; }
+.farmacia-select-title { font-size:11px; font-weight:700; color:var(--comp); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:10px; }
+.farmacia-item { background:white; border:1.5px solid var(--comp-border); border-radius:11px; padding:11px 13px; margin-bottom:8px; cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:10px; }
+.farmacia-item:hover { border-color:var(--comp); }
+.farmacia-item.selected { border-color:var(--comp); background:linear-gradient(135deg,#fff 0%,var(--comp-pale) 100%); }
+.farmacia-check { width:20px; height:20px; border-radius:6px; border:2px solid var(--comp-border); display:flex; align-items:center; justify-content:center; transition:all 0.15s; flex-shrink:0; font-size:11px; color:transparent; }
+.farmacia-item.selected .farmacia-check { background:var(--comp); border-color:var(--comp); color:white; }
+.farmacia-avatar { width:36px; height:36px; border-radius:10px; background:var(--comp-pale); display:flex; align-items:center; justify-content:center; font-size:16px; border:1px solid var(--comp-border); flex-shrink:0; }
+.farmacia-name { font-size:13px; font-weight:700; color:var(--charcoal); }
+.farmacia-city { font-size:11px; color:var(--light); margin-top:1px; }
+.comp-panel { display:none; } .comp-panel.active { display:block; }
+.btn-ghost { background:transparent; color:var(--mid); border:1px solid var(--border); } .btn-ghost:hover { background:#f5f5f5; }
+.btn-sm { padding:6px 12px; font-size:12px; }
+.prod-tab { padding:7px 14px; font-size:13px; border-radius:20px; border:1px solid var(--border); background:white; color:var(--light); cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.15s; }
+.prod-tab:hover { border-color:var(--sage); color:var(--sage); }
+.prod-tab-active { background:var(--sage-pale); color:var(--sage); border-color:var(--sage); font-weight:600; }
+.fav-star { background:none; border:none; font-size:18px; cursor:pointer; padding:0 4px; line-height:1; color:#ccc; transition:color 0.15s; }
+.fav-star.active { color:#f5a623; } .fav-star:hover { color:#f5a623; }
+.form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.form-full { grid-column:1/-1; }
+.form-group { margin-bottom:16px; }
+.form-label { display:block; font-size:12px; font-weight:600; color:var(--mid); letter-spacing:0.5px; margin-bottom:6px; }
+.form-input,.form-select,.form-textarea { width:100%; background:#fafafa; border:1.5px solid var(--border); border-radius:11px; padding:11px 14px; font-size:14px; font-family:'DM Sans',sans-serif; color:var(--charcoal); outline:none; transition:border-color 0.2s; }
+.form-input:focus,.form-select:focus,.form-textarea:focus { border-color:var(--sage); background:white; }
+.form-textarea { resize:vertical; min-height:80px; }
+.form-input::placeholder { color:var(--light); }
+.autocomplete-wrap { position:relative; }
+.autocomplete-dropdown { position:absolute; top:calc(100% + 4px); left:0; right:0; background:white; border:1px solid var(--border); border-radius:11px; box-shadow:0 8px 24px rgba(0,0,0,0.1); z-index:100; max-height:200px; overflow-y:auto; display:none; }
+.autocomplete-dropdown.open { display:block; }
+.ac-item { padding:10px 14px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border); }
+.ac-item:last-child { border-bottom:none; }
+.ac-item:hover,.ac-item.selected { background:var(--sage-pale); }
+.ac-item-name { font-weight:600; color:var(--charcoal); }
+.ac-item-detail { font-size:11px; color:var(--light); margin-top:1px; }
+.selected-chip { display:flex; align-items:center; justify-content:space-between; background:var(--sage-pale); border:1.5px solid var(--sage); border-radius:11px; padding:10px 14px; margin-top:6px; }
+.chip-name { font-size:13px; font-weight:600; color:var(--sage); }
+.chip-detail { font-size:11px; color:var(--sage-light); }
+.chip-remove { color:var(--light); cursor:pointer; font-size:16px; line-height:1; }
+.chip-remove:hover { color:var(--red); }
+.steps { display:flex; gap:0; margin-bottom:28px; }
+.step { display:flex; align-items:center; gap:8px; flex:1; }
+.step-num { width:28px; height:28px; border-radius:50%; background:var(--border); color:var(--light); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.step.active .step-num { background:var(--sage); color:white; }
+.step.done .step-num { background:var(--green); color:white; }
+.step-label { font-size:12px; font-weight:600; color:var(--light); }
+.step.active .step-label { color:var(--sage); }
+.step.done .step-label { color:var(--green); }
+.step-line { flex:1; height:2px; background:var(--border); margin:0 8px; }
+.step.done .step-line { background:var(--green); }
+.summary-box { background:var(--sage-pale); border-radius:14px; padding:20px; border:1.5px solid var(--sage); margin-bottom:16px; }
+.summary-row { display:flex; justify-content:space-between; padding:7px 0; border-bottom:1px solid rgba(74,124,111,0.15); font-size:13px; }
+.summary-row:last-child { border-bottom:none; }
+.summary-label { color:var(--sage-light); }
+.summary-value { font-weight:600; color:var(--sage-dark); }
+.toast { position:fixed; bottom:24px; right:24px; background:var(--charcoal); color:white; padding:12px 18px; border-radius:12px; font-size:13px; font-weight:500; z-index:1000; transform:translateY(80px); opacity:0; transition:all 0.3s; max-width:320px; }
+.toast.show { transform:translateY(0); opacity:1; }
+.toast.success { background:var(--green); }
+.toast.error { background:var(--red); }
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity 0.2s; }
+.modal-overlay.open { opacity:1; pointer-events:all; }
+.modal { background:white; border-radius:20px; padding:28px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; }
+.modal-title { font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--charcoal); margin-bottom:4px; }
+.modal-sub { font-size:13px; color:var(--light); margin-bottom:24px; }
+.modal-footer { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
+.empty { text-align:center; padding:48px 20px; }
+.empty-title { font-size:16px; font-weight:600; color:var(--charcoal); margin-bottom:6px; }
+.empty-sub { font-size:13px; color:var(--light); margin-bottom:20px; }
+.loading { text-align:center; padding:40px; color:var(--light); font-size:13px; }
+.spinner { display:inline-block; width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--sage); border-radius:50%; animation:spin 0.7s linear infinite; margin-right:8px; vertical-align:middle; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.patient-info { display:flex; align-items:center; gap:10px; }
+.patient-avatar { width:32px; height:32px; border-radius:50%; background:var(--sage-pale); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--sage); flex-shrink:0; }
+.step-panel { display:none; } .step-panel.active { display:block; }
+.search-bar { display:flex; gap:10px; margin-bottom:16px; }
+.search-input { flex:1; background:white; border:1.5px solid var(--border); border-radius:11px; padding:10px 14px; font-size:13px; font-family:'DM Sans',sans-serif; color:var(--charcoal); outline:none; }
+.search-input:focus { border-color:var(--sage); }
+.wa-btn { background:#25d366; color:white; border:none; border-radius:9px; padding:7px 12px; font-size:12px; font-weight:600; font-family:'DM Sans',sans-serif; cursor:pointer; display:inline-flex; align-items:center; gap:5px; }
+@media (max-width:900px) {
+  .sidebar { width:60px; }
+  .sidebar-logo,.nav-label,.sidebar-section,.user-info { display:none; }
+  .main { margin-left:60px; padding:20px; }
+  .stats-grid { grid-template-columns:1fr 1fr; }
+  .form-grid { grid-template-columns:1fr; }
+}
+.meal-plan-card { background:white; border-radius:14px; padding:20px; margin-bottom:12px; border:1.5px solid #e5e7eb; cursor:pointer; transition:all 0.15s; }
+.meal-plan-card:hover { border-color:var(--sage); box-shadow:0 2px 8px rgba(74,158,117,0.1); }
+.meal-plan-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+.meal-plan-card-title { font-size:16px; font-weight:700; color:#0f1f1a; }
+.meal-plan-card-paciente { font-size:13px; color:#6b9e8e; margin-top:2px; }
+</style>
+</head>
+<body>
+<!-- AUTH -->
+<div class="auth-wrap" id="authWrap">
+  <div class="auth-card">
+    <div class="auth-logo">synka</div>
+    <div class="auth-sub">plataforma para médicos</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Entrar</div>
+      <div class="auth-tab" id="tabRegister" onclick="switchTab('register')">Criar conta</div>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <div id="loginForm">
+      <div class="field"><label>E-mail</label><input type="email" id="loginEmail" placeholder="seu@email.com"></div>
+      <div class="field"><label>Senha</label><input type="password" id="loginPassword" placeholder="Sua senha" onkeydown="if(event.key==='Enter')handleLogin()"></div>
+      <button class="btn-primary" onclick="handleLogin()">Entrar</button>
+      <div style="text-align:center;margin-top:12px;"><span onclick="showDoctorForgot()" style="font-size:12px;color:var(--sage);cursor:pointer;text-decoration:underline;">Esqueci minha senha</span></div>
+    </div>
+    <div id="forgotForm" style="display:none;">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;color:var(--charcoal);">Recuperar senha</div>
+        <div style="font-size:12px;color:var(--light);margin-top:4px;">Enviaremos um link para seu e-mail</div>
+      </div>
+      <div class="field"><label>E-mail</label><input type="email" id="forgotEmail" placeholder="seu@email.com"></div>
+      <button class="btn-primary" onclick="handleDoctorForgot()">Enviar link de recuperação</button>
+      <div style="text-align:center;margin-top:12px;"><span onclick="hideDoctorForgot()" style="font-size:12px;color:var(--sage);cursor:pointer;text-decoration:underline;">← Voltar para o login</span></div>
+    </div>
+    <div id="forgotSuccess" style="display:none;text-align:center;padding:16px 0;">
+      <div style="font-size:36px;margin-bottom:10px;">📧</div>
+      <div style="font-size:14px;font-weight:600;color:var(--charcoal);margin-bottom:6px;">E-mail enviado!</div>
+      <div style="font-size:12px;color:var(--light);margin-bottom:16px;">Verifique sua caixa de entrada e clique no link para redefinir sua senha.</div>
+      <span onclick="hideDoctorForgot()" style="font-size:12px;color:var(--sage);cursor:pointer;text-decoration:underline;">Voltar para o login</span>
+    </div>
+    <div id="registerForm" style="display:none">
+      <div class="field"><label>Nome completo</label><input type="text" id="regName" placeholder="Dr. Nome Sobrenome"></div>
+      <div class="field"><label>Conselho Profissional</label>
+        <div style="display:flex;gap:8px;">
+          <select id="regCrmType" style="width:110px;padding:10px 8px;border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-family:'DM Sans',sans-serif;background:white;outline:none;flex-shrink:0;">
+            <option value="CRM">CRM</option><option value="CRN">CRN</option><option value="CRO">CRO</option>
+            <option value="CRP">CRP</option><option value="CREFITO">CREFITO</option><option value="COREN">COREN</option>
+          </select>
+          <input type="text" id="regCrm" placeholder="SP-123456" style="flex:1;" oninput="onCrmInput()" onblur="validateCrmRealtime()">
+        </div>
+      </div>
+      <div class="field"><label>Especialidade</label><input type="text" id="regSpecialty" placeholder="Dermatologia"></div>
+      <div class="field"><label>CPF <span style="color:#e05555;">*</span></label><input type="text" id="regCpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCpf(this)"></div>
+      <div class="field"><label>WhatsApp</label><input type="tel" id="regWhatsapp" placeholder="11999999999"></div>
+      <div class="field"><label>E-mail</label><input type="email" id="regEmail" placeholder="seu@email.com"></div>
+      <div class="field"><label>Senha</label><input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" oninput="checkSenhas()"></div>
+      <div class="field"><label>Confirmar senha</label><input type="password" id="regPasswordConfirm" placeholder="Repita a senha" oninput="checkSenhas()"></div>
+      <div id="senhaErr" style="display:none;background:#fff0f0;color:#e05555;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:8px;">As senhas não coincidem</div>
+      <button class="btn-primary" id="btnCriarConta" onclick="handleRegister()">Criar conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="appWrap" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-logo">synka</div>
+    <div class="sidebar-section">Menu</div>
+    <div class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg></span><span class="nav-label">Dashboard</span></div>
+    <div class="nav-item" onclick="showPage('new-rec')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v6M5 8h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">Nova Recomendação</span></div>
+    <div class="nav-item" onclick="showPage('history')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3h10a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h6M5 10h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">Histórico</span></div>
+    <div class="nav-item" onclick="showPage('patients')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M1.5 13c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M14.5 13c0-1.657-1.12-3-2.5-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">Pacientes</span></div>
+    <div class="nav-item" onclick="showPage('products')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="7" width="12" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="10.5" r="1" fill="currentColor"/></svg></span><span class="nav-label">Produtos</span></div>
+    <div class="nav-item" onclick="showPage('acompanhamento')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-4 3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Acompanhamento</span></div>
+    <div class="nav-item" onclick="showPage('calendario')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M1.5 7h13M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">Agenda</span></div>
+    <div class="nav-item" id="nav-meal-plan" style="display:none" onclick="showPage('meal-plan')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2v12M3 5h4a2 2 0 0 1 0 4H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 2v4M12 2v4M11 6v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">Plano Alimentar</span></div>
+    <div class="sidebar-bottom">
+      <div style="padding:0 12px 8px;">
+        <button onclick="abrirSettingsMedico()" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:8px 12px;border-radius:9px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">⚙️</span><span class="nav-label">Configurações</span></button>
+      </div>
+      <div class="user-info" onclick="showPage('profile')" style="cursor:pointer;border-radius:10px;transition:background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
+        <div class="user-avatar" id="userInitials">?</div>
+        <div><div class="user-name" id="userName">Carregando...</div><div class="user-role" id="userSpecialty">Médico</div></div>
+      </div>
+      <button class="logout-btn" onclick="handleLogout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">Bom dia, <span id="doctorFirstName">Doutor</span></div>
+        <div class="page-sub">Aqui está o resumo da sua prática</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Recomendações</div><div class="stat-num" id="statTotal">0</div><div class="stat-desc">Total enviadas</div></div>
+        <div class="stat-card"><div class="stat-label">Pacientes</div><div class="stat-num" id="statPatients">0</div><div class="stat-desc">Cadastrados</div></div>
+        <div class="stat-card"><div class="stat-label">Este mês</div><div class="stat-num" id="statMonth">0</div><div class="stat-desc">Recomendações</div></div>
+      </div>
+
+      <div class="stats-grid" style="margin-top:-8px;">
+        <div class="stat-card" style="border-top:3px solid var(--green);"><div class="stat-label">Em tratamento</div><div class="stat-num" style="color:var(--green);" id="statAtivos">0</div><div class="stat-desc">Compraram</div></div>
+        <div class="stat-card" style="border-top:3px solid var(--accent);"><div class="stat-label">Conversão</div><div class="stat-num" style="color:var(--accent);" id="statConversao">0%</div><div class="stat-desc">Taxa de compra</div></div>
+        <div class="stat-card" style="border-top:3px solid var(--warn);"><div class="stat-label">Pendentes</div><div class="stat-num" style="color:var(--warn);" id="statPendentes">0</div><div class="stat-desc">Não compraram</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Recomendações recentes</div><button class="btn btn-ghost btn-sm" onclick="showPage('new-rec')">+ Nova</button></div>
+        <div id="recentList"><div class="loading"><span class="spinner"></span>Carregando...</div></div>
+      </div>
+    </div>
+
+    <!-- NOVA RECOMENDAÇÃO -->
+    <div class="page" id="page-new-rec">
+      <div class="page-header"><div class="page-title">Nova Recomendação</div><div class="page-sub">Envie uma ou mais recomendações para o seu paciente</div></div>
+      <div class="steps">
+        <div class="step active" id="step1-indicator"><div class="step-num">1</div><div class="step-label">Paciente</div></div>
+        <div class="step-line"></div>
+        <div class="step" id="step2-indicator"><div class="step-num">2</div><div class="step-label">Produtos</div></div>
+        <div class="step-line"></div>
+        <div class="step" id="step3-indicator"><div class="step-num">3</div><div class="step-label">Confirmar</div></div>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="step-panel active" id="panel-step1">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Selecionar paciente</div></div>
+          <div class="card-body">
+            <div class="form-group autocomplete-wrap">
+              <label class="form-label">Buscar paciente salvo</label>
+              <input class="form-input" id="patientSearch" placeholder="Digite o nome do paciente..." oninput="searchPatients(this.value)" autocomplete="off">
+              <div class="autocomplete-dropdown" id="patientDropdown"></div>
+            </div>
+            <div id="selectedPatientChip" style="display:none"></div>
+            <div style="display:flex;align-items:center;gap:12px;margin:16px 0;">
+              <div style="flex:1;height:1px;background:var(--border);"></div>
+              <span style="font-size:12px;color:var(--light);">ou adicionar novo</span>
+              <div style="flex:1;height:1px;background:var(--border);"></div>
+            </div>
+            <div class="form-grid">
+              <div class="form-group"><label class="form-label">Nome do paciente</label><input class="form-input" id="newPatientName" placeholder="Maria Oliveira"></div>
+              <div class="form-group"><label class="form-label">WhatsApp</label><input class="form-input" id="newPatientWhatsapp" placeholder="(11) 99999-9999"></div>
+              <div class="form-group form-full"><label class="form-label">E-mail (opcional)</label><input class="form-input" id="newPatientEmail" placeholder="paciente@email.com"></div>
+              <div class="form-group"><label class="form-label">CPF</label><input class="form-input" id="newPatientCpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCpf(this)"></div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;"><button class="btn btn-sage" onclick="goToStep2()">Próximo: Produtos →</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-panel" id="panel-step2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Produtos recomendados</div><span style="font-size:12px;color:var(--light);" id="prodCount">0 produto(s)</span></div>
+          <div class="card-body">
+            <div id="addedProductsList"></div>
+            <div id="addProductForm" style="background:#fafafa;border-radius:14px;padding:16px;border:1.5px dashed var(--border);margin-bottom:16px;">
+              <div style="font-size:12px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;" id="addFormTitle">Produto 1</div>
+              <div class="tipo-toggle">
+                <button class="tipo-btn active-pronto" id="tipoBtnPronto" onclick="setTipoProduto('pronto')">Produto pronto</button>
+                <button class="tipo-btn" id="tipoBtnComp" onclick="setTipoProduto('comp')">Manipulado</button>
+              </div>
+              <!-- Produto pronto -->
+              <div class="comp-panel active" id="panelPronto">
+                <div class="form-group autocomplete-wrap">
+                  <label class="form-label">Produto</label>
+                  <input class="form-input" id="productSearch" placeholder="Digite o nome do produto..." oninput="searchProducts(this.value)" autocomplete="off">
+                  <div class="autocomplete-dropdown" id="productDropdown"></div>
+                </div>
+                <div id="selectedProductChip" style="display:none"></div>
+                <div class="form-grid" style="margin-top:4px;">
+                  <div class="form-group"><label class="form-label">Dosagem</label><input class="form-input" id="recDosage" placeholder="ex: 1ml, 500mg"></div>
+                  <div class="form-group"><label class="form-label">Frequência</label><input class="form-input" id="recFrequency" placeholder="ex: 2x ao dia"></div>
+                  <div class="form-group"><label class="form-label">Duração</label><input class="form-input" id="recDuration" placeholder="ex: 3 meses"></div>
+                  <!-- NOVO: Próximo Retorno -->
+                  <div class="form-group">
+                    <label class="form-label">Próximo retorno</label>
+                    <input class="form-input" id="recReturnDate" type="date">
+                  </div>
+                </div>
+                <div class="form-group form-full"><label class="form-label">Observações</label><textarea class="form-textarea" id="recNotes" placeholder="Instruções adicionais..." style="min-height:60px;"></textarea></div>
+                <div class="form-group form-full">
+                  <label class="form-label">Marcas sugeridas <span style="color:var(--light);font-weight:400;">(até 3 opções)</span></label>
+                  <input class="form-input" id="marcaSearch" placeholder="Buscar marca..." oninput="searchMarcas(this.value)" autocomplete="off" style="margin-bottom:8px;">
+                  <div id="marcaDropdown" style="background:white;border:1.5px solid var(--border);border-radius:10px;display:none;max-height:180px;overflow-y:auto;"></div>
+                  <div id="marcasSelecionadas" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+                </div>
+              </div>
+              <!-- Manipulado -->
+              <div class="comp-panel" id="panelComp">
+                <div class="comp-header">
+                  <span style="font-size:16px;font-weight:700;color:var(--comp);">Rx</span>
+                  <div><div class="title">Fórmula manipulada</div><div class="sub">A farmácia parceira recebe a fórmula e entra em contato com o paciente.</div></div>
+                </div>
+                <div class="form-group"><label class="form-label">Nome do manipulado</label><input class="form-input" id="compNome" placeholder="ex: Fórmula Rejuvenescedora Facial"></div>
+                <div class="comp-section-label">Componentes da fórmula</div>
+                <div id="compComponentesList"></div>
+                <button class="btn btn-ghost" style="width:100%;margin-bottom:14px;border-style:dashed;font-size:12px;" onclick="addCompComponente()">+ Adicionar componente</button>
+                <div class="form-grid">
+                  <div class="form-group"><label class="form-label">Veículo / Base</label>
+                    <select class="form-select" id="compVeiculo">
+                      <option value="">Selecione...</option><option>Creme</option><option>Gel</option><option>Solução aquosa</option><option>Solução oleosa</option><option>Cápsula</option><option>Pó</option><option>Loção</option><option>Outro</option>
+                    </select>
+                  </div>
+                  <div class="form-group"><label class="form-label">Quantidade total</label><input class="form-input" id="compQtd" placeholder="ex: 60g, 30ml"></div>
+                </div>
+                <div style="height:1px;background:var(--border);margin:14px 0;"></div>
+                <div class="form-grid">
+                  <div class="form-group"><label class="form-label">Dosagem / Aplicação</label><input class="form-input" id="compDosage" placeholder="ex: 1ml, fina camada"></div>
+                  <div class="form-group"><label class="form-label">Frequência</label><input class="form-input" id="compFrequency" placeholder="ex: 1x ao dia, à noite"></div>
+                </div>
+                <div class="form-group"><label class="form-label">Duração</label><input class="form-input" id="compDuration" placeholder="ex: 3 meses"></div>
+                <div class="form-group"><label class="form-label">Observações ao paciente</label><textarea class="form-textarea" id="compNotes" placeholder="Instruções de aplicação, armazenamento..." style="min-height:60px;"></textarea></div>
+              </div>
+              <button class="btn btn-secondary" style="width:100%;margin-top:4px;" onclick="addProductToList()">+ Adicionar este produto</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <button class="btn btn-ghost" onclick="goToStep(1)">← Voltar</button>
+              <button class="btn btn-sage" onclick="goToStep3()">Confirmar e enviar →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-panel" id="panel-step3">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Confirmar e enviar</div></div>
+          <div class="card-body">
+            <div class="summary-box" id="summaryBox"></div>
+            <div id="farmaciasSection" style="display:none;">
+              <div style="background:var(--comp-pale);border:1.5px solid var(--comp-border);border-radius:12px;padding:14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">🏪</span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--comp);">Orçamentos automáticos</div>
+                  <div style="font-size:12px;color:var(--mid);margin-top:2px;">As farmácias parceiras receberão a fórmula automaticamente e enviarão orçamentos. Você e o paciente serão notificados pelo app.</div>
+                </div>
+              </div>
+            </div>
+            <div style="background:var(--accent-light);border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;color:var(--mid);">O paciente receberá um link no WhatsApp com todos os produtos e instruções de uso.</div>
+            <div style="display:flex;justify-content:space-between;">
+              <button class="btn btn-ghost" onclick="goToStep(2)">← Voltar</button>
+              <button class="btn btn-sage" id="sendBtn" onclick="sendRecommendation()">Enviar via WhatsApp</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="page" id="page-history">
+      <div class="page-header"><div class="page-title">Histórico</div><div class="page-sub">Todas as recomendações enviadas</div></div>
+      <div class="search-bar">
+        <input class="search-input" id="historySearch" placeholder="Buscar por paciente ou produto..." oninput="filterHistory(this.value)">
+        <select class="form-select" style="width:160px;" id="historyStatus" onchange="filterHistory(document.getElementById('historySearch').value)">
+          <option value="">Todos os status</option><option value="not_started">Nao iniciado</option><option value="active">Ativo</option><option value="completed">Concluido</option>
+        </select>
+      </div>
+      <div class="card"><div id="historyList"><div class="loading"><span class="spinner"></span>Carregando...</div></div></div>
+    </div>
+
+    <!-- PACIENTES -->
+    <div class="page" id="page-patients">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><div class="page-title">Pacientes</div><div class="page-sub">Gerencie seus pacientes cadastrados</div></div>
+        <button class="btn btn-sage" onclick="openAddPatientModal()">+ Novo Paciente</button>
+      </div>
+      <div class="search-bar"><input class="search-input" id="patientSearchPage" placeholder="Buscar paciente..." oninput="filterPatients(this.value)"></div>
+      <div class="card"><div id="patientsList"><div class="loading"><span class="spinner"></span>Carregando...</div></div></div>
+    </div>
+
+    <!-- PRODUTOS -->
+    <div class="page" id="page-products">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><div class="page-title">Catálogo de Produtos</div><div class="page-sub">Produtos disponíveis para recomendação</div></div>
+        <button class="btn btn-sage" onclick="openAddProductModal()">+ Novo Produto</button>
+      </div>
+      <div class="search-bar"><input class="search-input" id="productSearchPage" placeholder="Buscar produto..." oninput="filterProducts(this.value)"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="productTabs">
+        <button class="prod-tab prod-tab-active" onclick="setProductTab('favoritos')">Favoritos</button>
+        <button class="prod-tab" onclick="setProductTab('todos')">Todos</button>
+        <button class="prod-tab" onclick="setProductTab('Queda de cabelo')">Queda de cabelo</button>
+        <button class="prod-tab" onclick="setProductTab('Pele')">Pele</button>
+        <button class="prod-tab" onclick="setProductTab('Acne')">Acne</button>
+        <button class="prod-tab" onclick="setProductTab('Suplementos')">Suplementos</button>
+      </div>
+      <div class="card"><div id="productsList"><div class="loading"><span class="spinner"></span>Carregando...</div></div></div>
+    </div>
+
+    <!-- PLANO ALIMENTAR -->
+    <div class="page" id="page-calendario">
+      <div style="height:calc(100vh - 120px);overflow:hidden;display:flex;flex-direction:column;">
+      <div class="page-header" style="flex-shrink:0;padding-bottom:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+          <div>
+            <h1 class="page-title">Agenda</h1>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button onclick="mudarMesCal(-1)" style="width:28px;height:28px;border-radius:8px;border:1px solid #e0e0e0;background:white;cursor:pointer;font-size:16px;line-height:1;">‹</button>
+            <div id="calTitulo" style="font-size:14px;font-weight:700;color:#0f1f1a;min-width:120px;text-align:center;"></div>
+            <button onclick="mudarMesCal(1)" style="width:28px;height:28px;border-radius:8px;border:1px solid #e0e0e0;background:white;cursor:pointer;font-size:16px;line-height:1;">›</button>
+          </div>
+          <div style="display:flex;gap:12px;">
+            <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:var(--sage);flex-shrink:0;"></div>Prescrição</div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>Retorno</div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#666;"><div style="width:8px;height:8px;border-radius:50%;background:#e05555;flex-shrink:0;"></div>Fim trat.</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;flex:1;min-height:0;">
+        <!-- Calendário -->
+        <div style="background:white;border-radius:16px;padding:16px;display:flex;flex-direction:column;">
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:6px;">
+            <div style="text-align:center;font-size:11px;font-weight:600;color:#bbb;">Dom</div>
+            <div style="text-align:center;font-size:11px;font-weight:600;color:#bbb;">Seg</div>
+            <div style="text-align:center;font-size:11px;font-weight:600;color:#bbb;">Ter</div>
+            <div style="text-align:center;font-size:11px;font-weight:600;color:#bbb;">Qua</div>
+            <div style="text-align:center;font-size:11px;font-weight:600;color:#bbb;">Qui</div>
+            <div style="text-align:center;font-size:11px;font-weight:600;color:#bbb;">Sex</div>
+            <div style="text-align:center;font-size:11px;font-weight:600;color:#bbb;">Sáb</div>
+          </div>
+          <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;flex:1;"></div>
+        </div>
+        <!-- Painel lateral de eventos -->
+        <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto;">
+          <div id="calEventosDia" style="background:white;border-radius:16px;padding:16px;">
+            <div style="text-align:center;color:#bbb;padding:20px 0;">
+              <div style="font-size:28px;margin-bottom:8px;">📅</div>
+              <div style="font-size:13px;">Clique em um dia para ver os eventos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-meal-plan">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><div class="page-title">Plano Alimentar</div><div class="page-sub">Monte planos alimentares semanais para seus pacientes</div></div>
+        <button class="btn btn-sage" onclick="abrirModalPlano()">+ Novo Plano</button>
+      </div>
+      <div class="search-bar"><input class="search-input" id="mealPlanSearch" placeholder="Buscar por paciente..." oninput="filtrarPlanos(this.value)"></div>
+      <div id="meal-plan-list"><div class="empty"><div class="empty-title">Nenhum plano criado ainda</div><div class="empty-sub">Crie planos alimentares semanais para seus pacientes</div><button class="btn btn-sage" onclick="abrirModalPlano()">+ Novo Plano Alimentar</button></div></div>
+    </div>
+    <!-- ACOMPANHAMENTO -->
+    <div class="page" id="page-acompanhamento">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><div class="page-title">Acompanhamento</div><div class="page-sub">Progresso dos tratamentos dos seus pacientes</div></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="acompFilters">
+        <button class="prod-tab prod-tab-active" onclick="setAcompFiltro('todos',this)">Todos</button>
+        <button class="prod-tab" onclick="setAcompFiltro('active',this)">Em tratamento</button>
+        <button class="prod-tab" onclick="setAcompFiltro('not_started',this)">Pendentes</button>
+        <button class="prod-tab" onclick="setAcompFiltro('completed',this)">Concluídos</button>
+      </div>
+      <div class="search-bar" style="margin-bottom:16px;">
+        <input class="search-input" id="acompSearch" placeholder="Buscar paciente..." oninput="filtrarAcomp(this.value)">
+        <select class="form-select" style="width:180px;" id="acompPeriodo" onchange="filtrarAcomp(document.getElementById('acompSearch').value)">
+          <option value="">Todos os períodos</option>
+          <option value="7">Últimos 7 dias</option>
+          <option value="30">Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+        </select>
+      </div>
+      <div id="acompList"><div class="loading"><span class="spinner"></span>Carregando...</div></div>
+    </div>
+
+    <!-- PERFIL DO MÉDICO -->
+    <div class="page" id="page-profile">
+      <div class="page-header"><div class="page-title">Meu Perfil</div></div>
+      <div class="card" style="text-align:center;padding:28px 20px;">
+        <div id="profileAvatar" style="width:72px;height:72px;border-radius:50%;background:var(--sage-pale);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:var(--sage);margin:0 auto 12px;"></div>
+        <div id="profileNameDisplay" style="font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin-bottom:4px;"></div>
+        <div id="profileSpecDisplay" style="font-size:13px;color:var(--light);margin-bottom:4px;"></div>
+        <div id="profileCrmDisplay" style="font-size:12px;color:var(--light);margin-bottom:20px;"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
+          <div style="background:#f9f9f7;border-radius:12px;padding:12px 8px;text-align:center;">
+            <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--sage);" id="profileStatTotal">0</div>
+            <div style="font-size:11px;color:var(--light);">Receitas</div>
+          </div>
+          <div style="background:#f9f9f7;border-radius:12px;padding:12px 8px;text-align:center;">
+            <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:var(--sage);" id="profileStatPats">0</div>
+            <div style="font-size:11px;color:var(--light);">Pacientes</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:12px;padding:12px 8px;text-align:center;border:1.5px solid #ddd6fe;">
+            <div style="font-size:20px;margin-bottom:2px;">⭐</div>
+            <div style="font-family:'Fraunces',serif;font-size:24px;font-weight:700;color:#6366f1;" id="profileStatPoints">0</div>
+            <div style="font-size:11px;color:#8b5cf6;font-weight:600;">Synka Points</div>
+          </div>
+        </div>
+        <button onclick="abrirSettingsMedico()" class="btn btn-sage" style="width:100%;">⚙️ Editar dados</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modalPatientNotes">
+  <div class="modal">
+    <div class="modal-title">Anotações do Paciente</div><div class="modal-sub" id="notesPatientName">—</div>
+    <div class="form-group"><label class="form-label">Anotações clínicas</label><textarea class="form-textarea" id="notesTextarea" placeholder="Alergias, histórico, observações relevantes..." style="min-height:120px;resize:vertical;"></textarea></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modalPatientNotes')">Cancelar</button><button class="btn btn-sage" onclick="savePatientNotes()">Salvar</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalPatientHistory">
+  <div class="modal" style="max-width:680px;width:95%;">
+    <div class="modal-header"><div class="modal-title" id="historyModalTitle">Histórico do Paciente</div><button class="modal-close" onclick="closeModal('modalPatientHistory')">×</button></div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto;padding:0;">
+      <div id="historyContent" style="padding:20px;"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modalPatientHistory')">Fechar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalPatient">
+  <div class="modal">
+    <div class="modal-title">Novo Paciente</div><div class="modal-sub">Adicione um paciente ao seu cadastro</div>
+    <div class="form-group"><label class="form-label">Nome completo</label><input class="form-input" id="mpName" placeholder="Maria Oliveira"></div>
+    <div class="form-group"><label class="form-label">WhatsApp</label><input class="form-input" id="mpWhatsapp" placeholder="(11) 99999-9999"></div>
+    <div class="form-group"><label class="form-label">CPF</label><input class="form-input" id="mpCpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCpf(this)"></div>
+    <div class="form-group"><label class="form-label">Anotações</label><textarea class="form-textarea" id="mpNotes" placeholder="Alergias, histórico relevante..." style="min-height:70px;resize:vertical;"></textarea></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modalPatient')">Cancelar</button><button class="btn btn-sage" onclick="savePatient()">Salvar</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalProduct">
+  <div class="modal">
+    <div class="modal-title">Novo Produto</div><div class="modal-sub">Adicione um produto ao catálogo</div>
+    <div class="form-grid">
+      <div class="form-group form-full"><label class="form-label">Nome do produto</label><input class="form-input" id="prName" placeholder="Minoxidil 5%"></div>
+      <div class="form-group"><label class="form-label">Marca</label><input class="form-input" id="prBrand" placeholder="Kirkland"></div>
+      <div class="form-group"><label class="form-label">Categoria</label><input class="form-input" id="prCategory" placeholder="Dermatologia"></div>
+
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modalProduct')">Cancelar</button><button class="btn btn-sage" onclick="saveProduct()">Salvar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+const SUPABASE_URL = 'https://iwrfgdfxvyqdkqdtrrxg.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cmZnZGZ4dnlxZGtxZHRycnhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzNjIxMzEsImV4cCI6MjA4OTkzODEzMX0.kQr7K_W-B2bcEYgQpxIrNFhORyiYT6_SZkfpC4S_AfQ';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const PALAVRAS_CONTROLADO = [
+  'tarja vermelha','tarja preta','controlado','clonazepam','alprazolam',
+  'diazepam','lorazepam','bromazepam','midazolam','rivotril','frontal',
+  'valium','lexotan','ritalina','concerta','venvanse','vyvanse',
+  'metilfenidato','modafinil','zolpidem','stilnox','morfina','codeína','codeina',
+  'tramadol','oxicodona','fentanil','buprenorfina','metadona','quetiapina',
+  'olanzapina','risperidona','haloperidol','clozapina','carbamazepina',
+  'valproato','fenitoína','fenitoina','fenobarbital','isotretinoína','isotretinoina',
+  'roacutan','anfetamina',
+];
+
+function precisaReceita(nome) {
+  if (!nome) return false;
+  const lower = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return PALAVRAS_CONTROLADO.some(p => lower.includes(p.normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
+}
+
+let _controladoCallback = null;
+
+function mostrarModalControlado(nomeRemedio, onConfirm) {
+  const old = document.getElementById('modalControlado');
+  if (old) old.remove();
+  _controladoCallback = onConfirm;
+
+  const modal = document.createElement('div');
+  modal.id = 'modalControlado';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:20px;padding:28px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="width:52px;height:52px;border-radius:26px;background:#fff0f0;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+        <span style="font-size:24px;">⚠️</span>
+      </div>
+      <h3 style="font-size:17px;font-weight:700;color:#0f1f1a;text-align:center;margin-bottom:8px;">Medicamento controlado</h3>
+      <p style="font-size:13px;color:#666;text-align:center;line-height:1.6;margin-bottom:20px;">
+        <strong>${nomeRemedio}</strong> é um medicamento controlado e exige receita médica especial.<br><br>
+        Como deseja prescrever?
+      </p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <a href="https://memed.com.br" target="_blank" style="background:#2563eb;color:white;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;text-align:center;text-decoration:none;display:block;">
+          💊 Prescrever pelo Memed
+        </a>
+        <a href="https://mevo.com.br" target="_blank" style="background:#7c3aed;color:white;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;text-align:center;text-decoration:none;display:block;">
+          📋 Prescrever pelo Mevo
+        </a>
+        <button onclick="document.getElementById('modalControlado').remove();if(_controladoCallback){_controladoCallback();_controladoCallback=null;}" style="background:#1D9E75;color:white;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;width:100%;">
+          📝 Vou prescrever no papel
+        </button>
+        <button onclick="document.getElementById('modalControlado').remove();_controladoCallback=null;" style="background:#f5f5f5;color:#666;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;width:100%;">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+let currentUser=null, currentDoctor=null, selectedPatient=null, selectedProduct=null;
+let selectedProducts=[], allRecommendations=[], allPatients=[], allProducts=[], allMarcas=[];
+let selectedMarcas = [];
+let tipoProdutoAtual='pronto', compComponentes=[{nome:'',conc:''}];
+
+function setTipoProduto(tipo) {
+  tipoProdutoAtual=tipo;
+  document.getElementById('tipoBtnPronto').className='tipo-btn'+(tipo==='pronto'?' active-pronto':'');
+  document.getElementById('tipoBtnComp').className='tipo-btn'+(tipo==='comp'?' active-comp':'');
+  document.getElementById('panelPronto').classList.toggle('active',tipo==='pronto');
+  document.getElementById('panelComp').classList.toggle('active',tipo==='comp');
+}
+
+function renderCompComponentes() {
+  const el=document.getElementById('compComponentesList'); if(!el)return;
+  el.innerHTML=compComponentes.map((c,i)=>`
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+      <input class="form-input" style="flex:2;margin-bottom:0;" placeholder="ex: Niacinamida" value="${c.nome}" oninput="compComponentes[${i}].nome=this.value">
+      <input class="form-input" style="flex:1;margin-bottom:0;" placeholder="ex: 5%" value="${c.conc}" oninput="compComponentes[${i}].conc=this.value">
+      ${compComponentes.length>1?`<button onclick="removeCompComponente(${i})" style="background:none;border:none;cursor:pointer;color:var(--light);font-size:20px;padding:4px;">×</button>`:'<div style="width:28px;"></div>'}
+    </div>`).join('');
+}
+function addCompComponente(){compComponentes.push({nome:'',conc:''});renderCompComponentes();}
+function removeCompComponente(i){compComponentes.splice(i,1);renderCompComponentes();}
+function toggleFarmaciaItem(el){el.classList.toggle('selected');}
+function getSelectedFarmacias(){return Array.from(document.querySelectorAll('.farmacia-item.selected')).map(el=>({nome:el.dataset.nome,wa:el.dataset.wa}));}
+
+function buildFarmaciaMessage(farmacia,patName,patWa,formula,docName){
+  const rawName=docName||''; const hasTitle=/^dr\.?\s|^dra\.?\s/i.test(rawName.trim());
+  const docTitle=hasTitle?rawName:('Dr. '+rawName);
+  let msg=`*synka* — Solicitação de manipulação\n\n`;
+  msg+=`${docTitle} encaminhou uma fórmula para manipulação.\n\n*Paciente:* ${patName}\n*Contato:* ${patWa}\n\n`;
+  msg+=`*${formula.nome||'Fórmula manipulada'}*\n----------------------------\n`;
+  formula.componentes.forEach(c=>{msg+=`${c.nome}${c.conc?' — '+c.conc:''}\n`;});
+  msg+=`----------------------------\n`;
+  if(formula.veiculo)msg+=`Veículo: ${formula.veiculo}\n`;
+  if(formula.qtd)msg+=`Quantidade: ${formula.qtd}\n`;
+  if(formula.dosage||formula.frequency)msg+=`Posologia: ${[formula.dosage,formula.frequency].filter(Boolean).join(' · ')}\n`;
+  if(formula.notes)msg+=`Obs: ${formula.notes}\n`;
+  msg+=`\nPor favor, entre em contato com o paciente para confirmar o pedido.\n_Enviado via synka_`;
+  return msg;
+}
+
+// AUTH
+function switchTab(tab){
+  document.getElementById('loginForm').style.display=tab==='login'?'block':'none';
+  document.getElementById('registerForm').style.display=tab==='register'?'block':'none';
+  document.getElementById('forgotForm').style.display='none';
+  document.getElementById('forgotSuccess').style.display='none';
+  document.getElementById('tabLogin').classList.toggle('active',tab==='login');
+  document.getElementById('tabRegister').classList.toggle('active',tab==='register');
+  hideAuthError();
+}
+function showDoctorForgot(){
+  document.getElementById('loginForm').style.display='none';
+  document.getElementById('forgotForm').style.display='block';
+  document.getElementById('forgotSuccess').style.display='none';
+  const email=document.getElementById('loginEmail').value;
+  if(email)document.getElementById('forgotEmail').value=email;
+  hideAuthError();
+}
+function hideDoctorForgot(){
+  document.getElementById('loginForm').style.display='block';
+  document.getElementById('forgotForm').style.display='none';
+  document.getElementById('forgotSuccess').style.display='none';
+}
+async function handleDoctorForgot(){
+  const email=document.getElementById('forgotEmail').value.trim();
+  if(!email)return showAuthError('Preencha seu e-mail');
+  const{error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.href});
+  if(error)return showAuthError('Erro: '+error.message);
+  document.getElementById('forgotForm').style.display='none';
+  document.getElementById('forgotSuccess').style.display='block';
+}
+function showAuthError(msg){const el=document.getElementById('authError');el.textContent=msg;el.style.display='block';}
+function hideAuthError(){document.getElementById('authError').style.display='none';}
+
+async function handleLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const password=document.getElementById('loginPassword').value;
+  if(!email||!password)return showAuthError('Preencha e-mail e senha.');
+  hideAuthError();
+  const btn=document.querySelector('#loginForm .btn-primary');
+  btn.disabled=true;btn.textContent='Entrando...';
+  const{data,error}=await sb.auth.signInWithPassword({email,password});
+  btn.disabled=false;btn.textContent='Entrar';
+  if(error)return showAuthError('E-mail ou senha incorretos.');
+  if(!data.user.email_confirmed_at){
+    await sb.auth.signOut();
+    return showAuthError('Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.');
+  }
+  currentUser=data.user;await loadDoctorProfile();showApp();
+}
+
+let crmValidationTimer = null;
+let crmValidationCache = {};
+let crmValidated = false;
+let crmValidatedValue = '';
+
+function onCrmInput(){
+  crmValidated = false;
+  clearTimeout(crmValidationTimer);
+  const num = document.getElementById('regCrm').value.trim();
+  if(num.length < 4) return;
+  crmValidationTimer = setTimeout(validateCrmRealtime, 800);
+}
+
+async function validateCrmRealtime(){
+  const tipo = document.getElementById('regCrmType')?.value || 'CRM';
+  const num = document.getElementById('regCrm').value.trim();
+  const name = document.getElementById('regName').value.trim();
+  if(!num || num.length < 4) return;
+
+  const suportados = ['CRM','CRO','CRF','CRBM','CRP'];
+  if(!suportados.includes(tipo)){
+    crmValidated = true;
+    crmValidatedValue = tipo+'-'+num;
+    status.style.display = 'none';
+    return;
+  }
+
+  const cacheKey = tipo+'-'+num+'-'+name;
+  if(crmValidationCache[cacheKey]){
+    const cached = crmValidationCache[cacheKey];
+    crmValidated = cached.valido;
+    crmValidatedValue = tipo+'-'+num;
+    return;
+  }
+
+  const resultado = await validarConselho(tipo, num, name);
+  crmValidationCache[cacheKey] = resultado;
+  crmValidated = resultado.valido;
+  crmValidatedValue = tipo+'-'+num;
+}
+
+
+
+function maskCpf(input){
+  let v=input.value.replace(/\D/g,'').slice(0,11);
+  if(v.length>9) v=v.replace(/(\d{3})(\d{3})(\d{3})(\d+)/,'$1.$2.$3-$4');
+  else if(v.length>6) v=v.replace(/(\d{3})(\d{3})(\d+)/,'$1.$2.$3');
+  else if(v.length>3) v=v.replace(/(\d{3})(\d+)/,'$1.$2');
+  input.value=v;
+}
+
+async function validarConselho(tipo, numero, nomeMedico){
+  const suportados = ['CRM','CRO','CRF','CRBM','CRP'];
+  if(!suportados.includes(tipo)) return { valido: true, aviso: true };
+
+  // Extrair UF e número
+  let uf = '', num = numero.replace(/[\s]/g,'').toUpperCase();
+  const matchUf = num.match(/^([A-Z]{2})[\-]?(\d+)$/);
+  const matchUfFim = num.match(/^(\d+)[\-]?([A-Z]{2})$/);
+  const matchSoNum = num.match(/^(\d+)$/);
+  if(matchUf){ uf=matchUf[1]; num=matchUf[2]; }
+  else if(matchUfFim){ num=matchUfFim[1]; uf=matchUfFim[2]; }
+  else if(matchSoNum){ num=matchSoNum[1]; }
+  else return { valido: false, erro: 'Formato inválido. Use SP-123456 ou 123456.' };
+
+  const endpointMap = { CRM:'crm', CRO:'cro', CRF:'crf', CRBM:'crbm', CRP:'crp' };
+  const ep = endpointMap[tipo];
+
+  try {
+    const { data, error } = await sb.functions.invoke('validate-council', {
+      body: { tipo: ep, numero: num, uf }
+    });
+    if(error) throw new Error(error.message);
+    if(!data?.found) return { valido: false, erro: tipo + ' não encontrado nos registros oficiais. Verifique o número.' };
+
+    // Validar nome se retornado
+    if(data.nome && nomeMedico){
+      const nomeApi = data.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      const nomeInput = nomeMedico.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^dr\.?\s*/,'').replace(/^dra\.?\s*/,'');
+      const primeiroNomeApi = nomeApi.split(' ')[0];
+      const ultimoNomeApi = nomeApi.split(' ').pop();
+      const nomeInputClean = nomeInput.trim();
+      if(!nomeInputClean.includes(primeiroNomeApi) && !nomeInputClean.includes(ultimoNomeApi)){
+        return { valido: false, erro: 'O nome informado não corresponde ao registro ' + tipo + '. Verifique seus dados.' };
+      }
+    }
+    return { valido: true, nome: data.nome };
+  } catch(e) {
+    return { valido: false, erro: 'Erro ao consultar registro. Verifique sua conexão e tente novamente.' };
+  }
+}
+
+function checkSenhas() {
+  const p1 = document.getElementById('regPassword').value;
+  const p2 = document.getElementById('regPasswordConfirm').value;
+  const err = document.getElementById('senhaErr');
+  const btn = document.getElementById('btnCriarConta');
+  if (p2 && p1 !== p2) {
+    err.style.display = 'block';
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+  } else {
+    err.style.display = 'none';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
+
+async function handleRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const crmType=document.getElementById('regCrmType')?.value||'CRM';
+  const crmNum=document.getElementById('regCrm').value.trim();
+  const crm=crmType+'-'+crmNum;
+  const specialty=document.getElementById('regSpecialty').value.trim();
+  const cpfRaw=document.getElementById('regCpf')?.value.trim()||'';
+  const cpfDigits=cpfRaw.replace(/\D/g,'');
+  const whatsapp=(document.getElementById('regWhatsapp')?.value||'').replace(/\D/g,'');
+  const email=document.getElementById('regEmail').value.trim();
+  const password=document.getElementById('regPassword').value;
+  const passwordConfirm=document.getElementById('regPasswordConfirm').value;
+  if(password !== passwordConfirm) return showAuthError('As senhas não coincidem.');
+  if(password.length < 6) return showAuthError('A senha deve ter pelo menos 6 caracteres.');
+
+  if(!name||!crmNum||!cpfDigits||!email||!password) return showAuthError('Preencha todos os campos obrigatórios.');
+  if(!validarCpf(cpfDigits)) return showAuthError('CPF inválido. Verifique e tente novamente.');
+
+  hideAuthError();
+  const btn=document.querySelector('#registerForm .btn-primary');
+  btn.disabled=true; btn.textContent='Validando registro...';
+
+  // Verificar CPF duplicado
+  const{data:cpfExist}=await sb.from('doctors').select('id').eq('cpf',cpfDigits).limit(1);
+  if(cpfExist&&cpfExist.length>0){
+    btn.disabled=false;btn.textContent='Criar conta';
+    return showAuthError('Este CPF já está cadastrado.');
+  }
+
+  // Verificar CRM duplicado
+  const{data:crmExist}=await sb.from('doctors').select('id').eq('crm',crm).limit(1);
+  if(crmExist&&crmExist.length>0){
+    btn.disabled=false;btn.textContent='Criar conta';
+    return showAuthError('Este ' + crmType + ' já está cadastrado.');
+  }
+
+  // Usar validação já feita em tempo real se disponível
+  const cacheKey = crmType+'-'+crmNum+'-'+name;
+  let validacao;
+  if(crmValidationCache[cacheKey]){
+    validacao = crmValidationCache[cacheKey];
+  } else {
+    btn.textContent='Validando registro...';
+    validacao = await validarConselho(crmType, crmNum, name);
+  }
+  if(!validacao.valido){
+    btn.disabled=false;btn.textContent='Criar conta';
+    return showAuthError(validacao.erro);
+  }
+
+  btn.textContent='Criando conta...';
+  const{data,error}=await sb.auth.signUp({email,password});
+  if(error){btn.disabled=false;btn.textContent='Criar conta';return showAuthError(error.message);}
+  if(data.user){
+    await sb.from('doctors').insert([{
+      id:data.user.id,email,name,crm,specialty,
+      cpf:cpfDigits,
+      whatsapp:whatsapp||null,
+      council_validated:!validacao.aviso
+    }]);
+  }
+  btn.disabled=false;btn.textContent='Criar conta';
+  document.getElementById('registerForm').innerHTML=`<div style="text-align:center;padding:16px 0;"><div style="font-size:40px;margin-bottom:14px;">📧</div><div style="font-size:16px;font-weight:600;color:white;margin-bottom:8px;">Confirme seu e-mail</div><div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.8;">Enviamos um link de confirmação para<br><strong style="color:rgba(255,255,255,0.8);">${email}</strong><br><br>Abra seu e-mail, clique no link e depois volte aqui para entrar.<br><br><strong style="color:rgba(255,255,255,0.6);">⚠️ Você só poderá entrar após confirmar o e-mail.</strong></div><button class="btn-primary" style="margin-top:20px;" onclick="switchTab('login')">Ir para o login →</button></div>`;
+}
+
+async function handleLogout(){
+  localStorage.removeItem('prescreveai_role');await sb.auth.signOut();
+  currentUser=null;currentDoctor=null;
+  document.getElementById('appWrap').style.display='none';
+  document.getElementById('authWrap').style.display='flex';
+}
+
+async function loadDoctorProfile(){
+  const{data}=await sb.from('doctors').select('*').eq('id',currentUser.id).single();
+  currentDoctor=data;
+  if(data){
+    const first=data.name.split(' ')[0];
+    document.getElementById('doctorFirstName').textContent=first;
+    document.getElementById('userName').textContent=data.name;
+    document.getElementById('userInitials').textContent=data.name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+    mostrarNavMealPlan();
+  }
+}
+
+function showApp(){
+  document.getElementById('authWrap').style.display='none';
+  document.getElementById('appWrap').style.display='flex';
+  loadDashboard();loadPatients();loadProducts();
+}
+
+function showPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const navMap={dashboard:0,'new-rec':1,history:2,patients:3,products:4,'meal-plan':5};
+  const navItems=document.querySelectorAll('.nav-item');
+  if(navMap[page]!==undefined&&navItems[navMap[page]])navItems[navMap[page]].classList.add('active');
+  if(page==='dashboard')loadDashboard();
+  if(page==='history')loadHistory();
+  if(page==='patients')renderPatients();
+  if(page==='products')renderProducts();
+  if(page==='new-rec')resetNewRec();
+  if(page==='meal-plan')loadMealPlans();
+  if(page==='profile')loadProfile();
+  if(page==='acompanhamento')loadAcompanhamento();
+  if(page==='calendario')loadCalendario();
+}
+
+// ── ACOMPANHAMENTO ──
+let acompFiltroAtual = 'todos';
+let acompTodos = [];
+
+// ─── CALENDÁRIO ─────────────────────────────────────────────────────────────
+let calMes = new Date().toISOString().slice(0,7);
+let calEventos = {};
+
+async function loadCalendario() {
+  const [ano, mes] = calMes.split('-').map(Number);
+  const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('calTitulo').textContent = nomes[mes-1] + ' ' + ano;
+
+  // Busca todas as recomendações do médico
+  const inicio = calMes + '-01';
+  const fim = new Date(ano, mes, 0).toISOString().slice(0,10);
+
+  const { data: recs } = await sb.from('recommendations')
+    .select('*, products(*), patients(name,whatsapp)')
+    .eq('doctor_id', currentDoctor.id)
+    .order('created_at', { ascending: true });
+
+  calEventos = {};
+
+  (recs||[]).forEach(r => {
+    // Data de prescrição
+    const dp = r.created_at?.slice(0,10);
+    if (dp?.startsWith(calMes)) {
+      if (!calEventos[dp]) calEventos[dp] = [];
+      calEventos[dp].push({ tipo: 'prescricao', rec: r, cor: 'var(--sage)' });
+    }
+    // Data de retorno
+    if (r.return_date && r.return_date.startsWith(calMes)) {
+      if (!calEventos[r.return_date]) calEventos[r.return_date] = [];
+      calEventos[r.return_date].push({ tipo: 'retorno', rec: r, cor: '#f59e0b' });
+    }
+    // Fim de tratamento
+    if (r.created_at && r.duration) {
+      const dur = parseDurToD(r.duration);
+      if (dur > 0) {
+        const fim = new Date(r.created_at);
+        fim.setDate(fim.getDate() + dur);
+        const fimStr = fim.toISOString().slice(0,10);
+        if (fimStr.startsWith(calMes)) {
+          if (!calEventos[fimStr]) calEventos[fimStr] = [];
+          calEventos[fimStr].push({ tipo: 'fim', rec: r, cor: '#e05555' });
+        }
+      }
+    }
+  });
+
+  renderCalendario(ano, mes);
+}
+
+function renderCalendario(ano, mes) {
+  const totalDias = new Date(ano, mes, 0).getDate();
+  const primeiroDia = new Date(ano, mes-1, 1).getDay();
+  const grid = document.getElementById('calGrid');
+  const hoje = new Date().toISOString().slice(0,10);
+
+  let cells = '';
+  for (let i = 0; i < primeiroDia; i++) {
+    cells += '<div></div>';
+  }
+  for (let d = 1; d <= totalDias; d++) {
+    const key = calMes + '-' + String(d).padStart(2,'0');
+    const evs = calEventos[key] || [];
+    const isHoje = key === hoje;
+    const hasRetorno = evs.some(e => e.tipo === 'retorno');
+    const hasPrescricao = evs.some(e => e.tipo === 'prescricao');
+    const hasFim = evs.some(e => e.tipo === 'fim');
+    const bgCor = hasFim ? '#fff0f0' : hasRetorno ? '#fff7e6' : hasPrescricao ? 'var(--sage-pale)' : 'transparent';
+    const textCor = hasFim ? '#e05555' : hasRetorno ? '#f59e0b' : hasPrescricao ? 'var(--sage)' : '#555';
+
+    cells += `<div onclick="selectDiaCal('${key}')"
+      style="aspect-ratio:1;padding:6px;border-radius:8px;cursor:${evs.length?'pointer':'default'};background:${isHoje?'var(--sage)':bgCor};border:1.5px solid ${isHoje?'var(--sage)':'transparent'};transition:all 0.1s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;"
+      onmouseover="if(!${isHoje})this.style.borderColor='var(--sage)'"
+      onmouseout="if(!${isHoje})this.style.borderColor='transparent'">
+      <span style="font-size:13px;font-weight:${isHoje||evs.length?'700':'400'};color:${isHoje?'white':textCor};">${d}</span>
+      ${evs.length ? `<div style="display:flex;gap:3px;">${[...new Set(evs.map(e=>e.cor))].map(c=>`<div style="width:5px;height:5px;border-radius:50%;background:${isHoje?'rgba(255,255,255,0.8)':c};"></div>`).join('')}</div>` : ''}
+    </div>`;
+  }
+  grid.innerHTML = cells;
+}
+
+function selectDiaCal(key) {
+  const evs = calEventos[key] || [];
+  const [ano, mes, dia] = key.split('-').map(Number);
+  const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const labels = { prescricao: '💊 Prescrição', retorno: '📅 Retorno', fim: '🏁 Fim de tratamento' };
+  const cores = { prescricao: 'var(--sage)', retorno: '#f59e0b', fim: '#e05555' };
+  const bgCores = { prescricao: 'var(--sage-pale)', retorno: '#fff7e6', fim: '#fff0f0' };
+
+  const painelHtml = evs.length === 0
+    ? `<div style="text-align:center;color:#bbb;padding:20px 0;"><div style="font-size:11px;font-weight:600;color:#0f1f1a;margin-bottom:12px;">${dia} de ${nomes[mes-1]}</div><div style="font-size:13px;">Nenhum evento neste dia</div></div>`
+    : `<div style="font-size:12px;font-weight:700;color:#0f1f1a;margin-bottom:12px;">${dia} de ${nomes[mes-1]} · ${evs.length} evento${evs.length>1?'s':''}</div>` +
+      evs.map(e => {
+        const r = e.rec;
+        const nomeProd = r.products?.name || 'Manipulado';
+        const nomePat = r.patients?.name || '—';
+        const waNum = (r.patients?.whatsapp||'').replace(/[^0-9]/g,'');
+        const waMsg = e.tipo === 'retorno'
+          ? 'Olá ' + nomePat.split(' ')[0] + ', tudo bem?\n\nPassando para confirmar seu retorno de hoje. Até logo!'
+          : 'Olá ' + nomePat.split(' ')[0] + '! Como está seu tratamento de ' + nomeProd + '?';
+        return `<div style="background:${bgCores[e.tipo]};border-radius:10px;padding:12px;margin-bottom:8px;">
+          <div style="font-size:10px;font-weight:700;color:${cores[e.tipo]};margin-bottom:4px;">${labels[e.tipo]}</div>
+          <div style="font-size:13px;font-weight:600;color:#0f1f1a;">${nomePat}</div>
+          <div style="font-size:11px;color:#888;margin-top:2px;">${nomeProd}${r.dosage?' · '+r.dosage:''}</div>
+          ${waNum ? `<a href="https://wa.me/55${waNum}?text=${encodeURIComponent(waMsg)}" target="_blank" style="display:inline-block;margin-top:8px;background:#25D366;color:white;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;text-decoration:none;">WhatsApp</a>` : ''}
+        </div>`;
+      }).join('');
+
+  document.getElementById('calEventosDia').innerHTML = painelHtml;
+}
+
+function mudarMesCal(delta) {
+  const [ano, mes] = calMes.split('-').map(Number);
+  const nova = new Date(ano, mes-1+delta, 1);
+  calMes = nova.toISOString().slice(0,7);
+  document.getElementById('calEventosDia').style.display = 'none';
+  loadCalendario();
+}
+
+function toggleAccordion(id) {
+  const el = document.getElementById(id);
+  const icon = document.getElementById('icon_' + id);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (icon) icon.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+
+async function loadAcompanhamento() {
+  if(!currentDoctor) return;
+  const {data} = await sb.from('recommendations')
+    .select('*, patients(*), products(*)')
+    .eq('doctor_id', currentDoctor.id)
+    .order('created_at', {ascending: false});
+  acompTodos = data || [];
+  filtrarAcomp('');
+}
+
+function setAcompFiltro(filtro, btn) {
+  acompFiltroAtual = filtro;
+  document.querySelectorAll('#acompFilters .prod-tab').forEach(b => b.classList.remove('prod-tab-active'));
+  btn.classList.add('prod-tab-active');
+  filtrarAcomp(document.getElementById('acompSearch').value);
+}
+
+function filtrarAcomp(q) {
+  const periodo = parseInt(document.getElementById('acompPeriodo').value) || 0;
+  const agora = new Date();
+  let lista = [...acompTodos];
+  if (acompFiltroAtual !== 'todos') lista = lista.filter(r => r.status === acompFiltroAtual);
+  if (periodo) lista = lista.filter(r => (agora - new Date(r.created_at)) / 86400000 <= periodo);
+  if (q) {
+    const qn = q.toLowerCase();
+    lista = lista.filter(r => (r.patients?.name||'').toLowerCase().includes(qn) || (r.products?.name||'').toLowerCase().includes(qn));
+  }
+  renderAcomp(lista);
+}
+
+function renderAcomp(lista) {
+  const el = document.getElementById('acompList');
+  if (!lista.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-title">Nenhum resultado</div><div class="empty-sub">Tente ajustar os filtros</div></div>';
+    return;
+  }
+  const byPat = {};
+  lista.forEach(r => {
+    const pid = r.patient_id;
+    if (!byPat[pid]) byPat[pid] = {patient: r.patients, recs: []};
+    byPat[pid].recs.push(r);
+  });
+
+  el.innerHTML = Object.values(byPat).map(({patient, recs}) => {
+    const ativo = recs.filter(r => r.status === 'active').length;
+    const pendente = recs.filter(r => r.status === 'not_started').length;
+    const concluido = recs.filter(r => r.status === 'completed').length;
+    const total = recs.length;
+    const pct = total ? Math.round((ativo/total)*100) : 0;
+    const corPct = pct >= 70 ? 'var(--sage)' : pct >= 30 ? 'var(--warn)' : '#e05555';
+    const lastRec = recs[0];
+    const diasAtras = lastRec ? Math.floor((new Date() - new Date(lastRec.created_at)) / 86400000) : null;
+    const dataLabel = diasAtras === 0 ? 'hoje' : diasAtras === 1 ? 'ontem' : diasAtras !== null ? `há ${diasAtras} dias` : '';
+
+    return `
+    <div style="background:white;border-radius:16px;padding:18px 20px;margin-bottom:12px;border:1px solid #f0f0f0;transition:box-shadow 0.15s;" onmouseover="this.style.boxShadow='0 4px 20px rgba(0,0,0,0.08)'" onmouseout="this.style.boxShadow='none'">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="patient-avatar" style="width:42px;height:42px;font-size:16px;">${(patient?.name||'?')[0].toUpperCase()}</div>
+          <div>
+            <div style="font-weight:700;font-size:15px;color:#0f1f1a;">${patient?.name||'—'}</div>
+            <div style="font-size:11px;color:var(--light);margin-top:2px;">${total} produto${total>1?'s':''} · última prescrição ${dataLabel}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="text-align:right;">
+            <div style="font-size:20px;font-weight:800;color:${corPct};">${pct}%</div>
+            <div style="font-size:10px;color:var(--light);">adesão</div>
+          </div>
+          ${patient?.whatsapp ? `<a href="https://wa.me/55${patient.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent('Olá ' + patient.name.split(' ')[0] + ', tudo bem?\n\nPassando para verificar como está o andamento do seu tratamento. Tem alguma dúvida ou dificuldade com os medicamentos?')}" target="_blank" style="width:36px;height:36px;background:#e8f5f0;border-radius:10px;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:18px;">💬</a>` : ''}
+        </div>
+      </div>
+
+      <!-- Barra de progresso -->
+      <div style="background:#f0f0f0;border-radius:6px;height:6px;overflow:hidden;margin-bottom:12px;">
+        <div style="width:${pct}%;height:6px;background:${corPct};border-radius:6px;transition:width 0.3s;"></div>
+      </div>
+
+      <!-- Status badges -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        ${ativo > 0 ? `<span style="background:#e8f5f0;color:var(--sage);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;">✓ ${ativo} em uso</span>` : ''}
+        ${pendente > 0 ? `<span style="background:var(--warn-light);color:var(--warn);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;">⏳ ${pendente} pendente${pendente>1?'s':''}</span>` : ''}
+        ${concluido > 0 ? `<span style="background:#f5f5f5;color:var(--light);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;">✓ ${concluido} concluído${concluido>1?'s':''}</span>` : ''}
+      </div>
+
+      <!-- Produtos -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${recs.slice(0,4).map(r => {
+          const isManip = r.notes && r.notes.includes('"__manipulado":true');
+          const nome = isManip ? (JSON.parse(r.notes)?.nome || 'Manipulado') : (r.products?.name||'—');
+          const bg = r.status==='active' ? 'var(--green-light)' : r.status==='completed' ? '#f5f5f5' : 'var(--warn-light)';
+          const cor = r.status==='active' ? 'var(--green)' : r.status==='completed' ? 'var(--light)' : 'var(--warn)';
+          return `<span style="background:${bg};color:${cor};font-size:11px;padding:3px 9px;border-radius:6px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nome}</span>`;
+        }).join('')}
+        ${recs.length > 4 ? `<span style="font-size:11px;color:var(--light);padding:3px 6px;">+${recs.length-4} mais</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── SETTINGS MÉDICO ──
+function abrirSettingsMedico() {
+  if (!currentDoctor) return;
+  const html = `<div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;display:flex;align-items:flex-end;justify-content:center;" id="settingsMedicoOverlay" onclick="if(event.target===this)this.remove()">
+    <div style="background:white;border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding-bottom:20px;">
+      <div style="padding:20px 24px 0;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:600;">Configurações</div>
+        <button onclick="document.getElementById('settingsMedicoOverlay').remove()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--light);">×</button>
+      </div>
+      <div style="padding:0 24px 20px;">
+        <div style="font-size:11px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Dados da conta</div>
+        <div class="form-group"><label class="form-label">Nome completo</label>
+          <input class="form-input" id="sm-nome" value="${currentDoctor.name||''}"></div>
+        <div class="form-group"><label class="form-label">Especialidade</label>
+          <input class="form-input" id="sm-esp" value="${currentDoctor.specialty||''}"></div>
+        <div class="form-group"><label class="form-label">CRM</label>
+          <input class="form-input" id="sm-crm" value="${currentDoctor.crm||''}"></div>
+        <div class="form-group"><label class="form-label">WhatsApp</label>
+          <input class="form-input" id="sm-wa" value="${currentDoctor.whatsapp||''}"></div>
+        <div class="form-group"><label class="form-label">Email</label>
+          <input class="form-input" value="${currentDoctor.email||''}" disabled style="opacity:0.5;cursor:not-allowed;"></div>
+        <button onclick="salvarSettingsMedico()" class="btn btn-sage" style="width:100%;margin-top:8px;">Salvar alterações</button>
+
+        <div style="font-size:11px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;margin:20px 0 12px;">Logo da receita</div>
+        <div style="text-align:center;margin-bottom:12px;">
+          <div id="sm-logo-preview" style="width:120px;height:60px;margin:0 auto 10px;border:2px dashed #ddd;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#f9f9f7;">
+            ${currentDoctor.logo_url ? `<img src="${currentDoctor.logo_url}" style="max-width:100%;max-height:100%;object-fit:contain;">` : '<span style="font-size:11px;color:#aaa;">Sem logo</span>'}
+          </div>
+          <input type="file" id="sm-logo-input" accept="image/*" style="display:none;" onchange="previewLogo(this)">
+          <button onclick="document.getElementById('sm-logo-input').click()" class="btn btn-ghost" style="font-size:13px;padding:8px 16px;">📷 Escolher imagem</button>
+          ${currentDoctor.logo_url ? `<button onclick="removerLogo()" class="btn btn-ghost" style="font-size:13px;padding:8px 16px;color:var(--red);margin-left:8px;">🗑️ Remover</button>` : ''}
+        </div>
+        <button onclick="salvarLogo()" class="btn btn-sage" style="width:100%;margin-top:4px;" id="sm-logo-btn">Salvar logo</button>
+
+        <div style="font-size:11px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;margin:20px 0 12px;">Assinatura digital</div>
+        <div style="text-align:center;margin-bottom:12px;">
+          ${currentDoctor.assinatura_url ? `<img src="${currentDoctor.assinatura_url}" style="max-width:100%;max-height:80px;object-fit:contain;margin-bottom:10px;border:1px solid #eee;border-radius:8px;padding:6px;">` : ''}
+          <canvas id="sm-assinatura-canvas" width="420" height="120" style="border:2px solid #ddd;border-radius:10px;background:white;cursor:crosshair;touch-action:none;width:100%;max-width:420px;display:block;margin:0 auto 8px;"></canvas>
+          <div style="display:flex;gap:8px;justify-content:center;">
+            <button onclick="limparAssinatura()" class="btn btn-ghost" style="font-size:13px;padding:8px 16px;">🗑️ Limpar</button>
+            <button onclick="salvarAssinatura()" class="btn btn-sage" style="font-size:13px;padding:8px 16px;">💾 Salvar assinatura</button>
+          </div>
+          <div style="font-size:11px;color:#aaa;margin-top:6px;">Desenhe sua assinatura com o mouse ou dedo</div>
+        </div>
+
+        <div style="font-size:11px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;margin:20px 0 12px;">Alterar senha</div>
+        <div class="form-group"><label class="form-label">Nova senha</label>
+          <input class="form-input" id="sm-pass" type="password" placeholder="Nova senha"></div>
+        <div class="form-group"><label class="form-label">Confirmar senha</label>
+          <input class="form-input" id="sm-pass2" type="password" placeholder="Confirmar senha"></div>
+        <button onclick="salvarSenhaMedico()" class="btn btn-ghost" style="width:100%;margin-top:4px;">Alterar senha</button>
+
+        <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
+          <button onclick="handleLogout()" style="width:100%;background:var(--red-light);color:var(--red);border:1.5px solid var(--red);border-radius:12px;padding:12px;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;">Sair da conta</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  setTimeout(initAssinaturaCanvas, 100);
+}
+
+async function salvarSettingsMedico() {
+  const name = document.getElementById('sm-nome')?.value.trim();
+  const specialty = document.getElementById('sm-esp')?.value.trim();
+  const crm = document.getElementById('sm-crm')?.value.trim();
+  const whatsapp = document.getElementById('sm-wa')?.value.replace(/\D/g,'');
+  if (!name) return showToast('Preencha o nome','error');
+  const {error} = await sb.from('doctors').update({name,specialty,crm,whatsapp:whatsapp||null}).eq('id',currentDoctor.id);
+  if (error) return showToast('Erro ao salvar','error');
+  currentDoctor = {...currentDoctor, name, specialty, crm, whatsapp};
+  document.getElementById('userName').textContent = name;
+  document.getElementById('userInitials').textContent = name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('doctorFirstName').textContent = name.split(' ')[0];
+  mostrarNavMealPlan();
+  document.getElementById('settingsMedicoOverlay')?.remove();
+  showToast('Perfil atualizado!','success');
+}
+
+// ── LOGO ──
+function previewLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('sm-logo-preview');
+    if (preview) preview.innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function salvarLogo() {
+  const input = document.getElementById('sm-logo-input');
+  if (!input?.files[0]) return showToast('Escolha uma imagem primeiro','error');
+  const btn = document.getElementById('sm-logo-btn');
+  if (btn) btn.textContent = 'Salvando...';
+  const file = input.files[0];
+  const ext = file.name.split('.').pop();
+  const fileName = `logo_${currentDoctor.id}.${ext}`;
+  const { error: upErr } = await sb.storage.from('doctors').upload(fileName, file, { upsert: true });
+  if (upErr) { if (btn) btn.textContent = 'Salvar logo'; return showToast('Erro ao salvar logo','error'); }
+  const { data } = sb.storage.from('doctors').getPublicUrl(fileName);
+  const logoUrl = data.publicUrl + '?t=' + Date.now();
+  await sb.from('doctors').update({ logo_url: logoUrl }).eq('id', currentDoctor.id);
+  currentDoctor.logo_url = logoUrl;
+  if (btn) btn.textContent = 'Salvar logo';
+  showToast('Logo salvo!','success');
+}
+
+async function removerLogo() {
+  await sb.from('doctors').update({ logo_url: null }).eq('id', currentDoctor.id);
+  currentDoctor.logo_url = null;
+  const preview = document.getElementById('sm-logo-preview');
+  if (preview) preview.innerHTML = '<span style="font-size:11px;color:#aaa;">Sem logo</span>';
+  showToast('Logo removido','success');
+}
+
+// ── ASSINATURA ──
+let _assinaturaDrawing = false;
+let _assinaturaCtx = null;
+
+function initAssinaturaCanvas() {
+  const canvas = document.getElementById('sm-assinatura-canvas');
+  if (!canvas) return;
+  _assinaturaCtx = canvas.getContext('2d');
+  _assinaturaCtx.strokeStyle = '#1a1a2e';
+  _assinaturaCtx.lineWidth = 2;
+  _assinaturaCtx.lineCap = 'round';
+  _assinaturaCtx.lineJoin = 'round';
+
+  const getPos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+  };
+
+  canvas.addEventListener('mousedown', e => { _assinaturaDrawing = true; const p = getPos(e); _assinaturaCtx.beginPath(); _assinaturaCtx.moveTo(p.x, p.y); });
+  canvas.addEventListener('mousemove', e => { if (!_assinaturaDrawing) return; const p = getPos(e); _assinaturaCtx.lineTo(p.x, p.y); _assinaturaCtx.stroke(); });
+  canvas.addEventListener('mouseup', () => _assinaturaDrawing = false);
+  canvas.addEventListener('mouseleave', () => _assinaturaDrawing = false);
+  canvas.addEventListener('touchstart', e => { e.preventDefault(); _assinaturaDrawing = true; const p = getPos(e); _assinaturaCtx.beginPath(); _assinaturaCtx.moveTo(p.x, p.y); }, { passive: false });
+  canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!_assinaturaDrawing) return; const p = getPos(e); _assinaturaCtx.lineTo(p.x, p.y); _assinaturaCtx.stroke(); }, { passive: false });
+  canvas.addEventListener('touchend', () => _assinaturaDrawing = false);
+}
+
+function limparAssinatura() {
+  const canvas = document.getElementById('sm-assinatura-canvas');
+  if (canvas && _assinaturaCtx) _assinaturaCtx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+async function salvarAssinatura() {
+  const canvas = document.getElementById('sm-assinatura-canvas');
+  if (!canvas) return;
+  const dataUrl = canvas.toDataURL('image/png');
+  if (dataUrl === 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAaQAAAB4CAYAAAC8pYR9AAAAC0lEQVQI12NgAAIABQAABjABpwAAAABJRU5ErkJggg==') return showToast('Desenhe sua assinatura primeiro','error');
+  
+  // Converte base64 para blob
+  const base64 = dataUrl.split(',')[1];
+  const binary = atob(base64);
+  const arr = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+  const blob = new Blob([arr], { type: 'image/png' });
+  
+  const fileName = `assinatura_${currentDoctor.id}.png`;
+  const { error } = await sb.storage.from('doctors').upload(fileName, blob, { upsert: true, contentType: 'image/png' });
+  if (error) return showToast('Erro ao salvar assinatura','error');
+  const { data } = sb.storage.from('doctors').getPublicUrl(fileName);
+  const url = data.publicUrl + '?t=' + Date.now();
+  await sb.from('doctors').update({ assinatura_url: url }).eq('id', currentDoctor.id);
+  currentDoctor.assinatura_url = url;
+  showToast('Assinatura salva!','success');
+}
+
+async function salvarSenhaMedico() {
+  const pass = document.getElementById('sm-pass')?.value;
+  const pass2 = document.getElementById('sm-pass2')?.value;
+  if (!pass || pass.length < 6) return showToast('Senha deve ter 6+ caracteres','error');
+  if (pass !== pass2) return showToast('Senhas não coincidem','error');
+  const {error} = await sb.auth.updateUser({password: pass});
+  if (error) return showToast('Erro: '+error.message,'error');
+  showToast('Senha alterada!','success');
+}
+
+async function loadDashboard(){
+  if(!currentDoctor)return;
+  const{data:recs}=await sb.from('recommendations').select('*, patients(*), products(*)').eq('doctor_id',currentDoctor.id).order('created_at',{ascending:false});
+  const{data:pats}=await sb.from('patients').select('id').eq('doctor_id',currentDoctor.id);
+  allRecommendations=recs||[];
+  const total=recs?.length||0;
+  const ativos=recs?.filter(r=>r.status==='active').length||0;
+  const naoIniciados=recs?.filter(r=>r.status==='not_started').length||0;
+  const conversao=total>0?Math.round((ativos/total)*100):0;
+  const now=new Date();
+  const thisMonth=recs?.filter(r=>new Date(r.created_at).getMonth()===now.getMonth()).length||0;
+  document.getElementById('statTotal').textContent=total;
+  document.getElementById('statPatients').textContent=pats?.length||0;
+  document.getElementById('statMonth').textContent=thisMonth;
+  document.getElementById('statAtivos').textContent=ativos;
+  document.getElementById('statConversao').textContent=conversao+'%';
+  document.getElementById('statPendentes').textContent=naoIniciados;
+  const points = (ativos||0) * 10;
+  const el_pts = document.getElementById('statPoints');
+  if(el_pts) el_pts.textContent = points.toLocaleString('pt-BR');
+  const el=document.getElementById('recentList');
+  if(!total){el.innerHTML='<div class="empty"><div class="empty-title">Nenhuma recomendação ainda</div><div class="empty-sub">Comece enviando sua primeira recomendação</div><button class="btn btn-sage" onclick="showPage(\'new-rec\')">+ Nova Recomendação</button></div>';return;}
+  const byPatient={};
+  (recs||[]).forEach(r=>{const pid=r.patient_id;if(!byPatient[pid])byPatient[pid]={patient:r.patients,recs:[]};byPatient[pid].recs.push(r);});
+  const recentPatients=Object.values(byPatient).slice(0,5);
+  el.innerHTML=recentPatients.map(({patient,recs:pRecs})=>{
+    const lastRec=pRecs[0];
+    const hasActive=pRecs.some(r=>r.status==='active');
+    const hasPending=pRecs.some(r=>r.status==='not_started');
+    const statusLabel=hasActive?'<span class="badge badge-green">Em tratamento</span>':hasPending?'<span class="badge badge-warn">Pendente</span>':'<span class="badge badge-gray">Concluído</span>';
+    return `<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+        <div class="patient-avatar">${(patient?.name||'?')[0].toUpperCase()}</div>
+        <div style="min-width:0;"><div style="font-weight:600;font-size:13px;">${patient?.name||'-'}</div><div style="font-size:11px;color:var(--light);">${pRecs.length} produto${pRecs.length>1?'s':''} · ${formatDate(lastRec.created_at)}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">${statusLabel}<button class="wa-btn" onclick="resendWhatsapp('${lastRec.id}')">Reenviar</button></div>
+    </div>`;
+  }).join('');
+}
+
+async function loadHistory(){
+  const{data}=await sb.from('recommendations').select('*, patients(*), products(*)').eq('doctor_id',currentDoctor.id).order('created_at',{ascending:false});
+  allRecommendations=data||[];renderHistory(allRecommendations);
+}
+
+function filterHistory(q){
+  const status=document.getElementById('historyStatus').value;
+  let filtered=allRecommendations;
+  if(q){const qn=removeAcentos(q);filtered=filtered.filter(r=>removeAcentos(r.patients?.name||'').includes(qn)||removeAcentos(r.products?.name||'').includes(qn));}
+  if(status)filtered=filtered.filter(r=>r.status===status);
+  renderHistory(filtered,!!q);
+}
+
+function renderHistory(recs,groupByPatient=false){
+  const el=document.getElementById('historyList');
+  if(!recs.length){el.innerHTML='<div class="empty"><div class="empty-title">Nenhum resultado</div></div>';return;}
+  if(!groupByPatient){
+    el.innerHTML='<div style="background:white;border-radius:14px;border:1px solid var(--border);overflow:hidden;">' +
+      recs.map(r=>`<div style="display:grid;grid-template-columns:1fr 140px 110px 120px;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-weight:600;font-size:13px;">${r.products?.name||'-'} <span style="font-weight:400;color:var(--light);">— ${r.patients?.name||'-'}</span></div>
+          <div style="font-size:11px;color:var(--light);margin-top:2px;">${r.products?.brand||''}${r.dosage?' · '+r.dosage:''}${r.frequency?' · '+r.frequency:''}</div>
+          ${r.return_date?`<div style="font-size:11px;color:var(--sage);margin-top:2px;">📅 Retorno: ${formatDate(r.return_date+'T12:00:00')}</div>`:''}
+          ${r.decline_reason?`<div style="font-size:11px;color:var(--red);margin-top:3px;">✕ ${r.decline_reason}</div>`:''}
+        </div>
+        <div style="font-size:12px;color:var(--light);">${formatDate(r.created_at)}</div>
+        <div>${statusBadge(r.status)}</div>
+        <div><button class="wa-btn" onclick="resendWhatsapp('${r.id}')">Reenviar</button></div>
+      </div>`).join('')+'</div>';
+    return;
+  }
+  const byPatient={};
+  recs.forEach(r=>{const pid=r.patient_id;if(!byPatient[pid])byPatient[pid]={patient:r.patients,recs:[]};byPatient[pid].recs.push(r);});
+  el.innerHTML=Object.values(byPatient).map(({patient,recs:pRecs})=>{
+    const prodRows=pRecs.map(r=>`<div style="display:grid;grid-template-columns:1fr 140px 110px 120px;gap:12px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--border);">
+      <div>
+        <div style="font-weight:600;font-size:13px;">${r.products?.name||'-'}</div>
+        <div style="font-size:11px;color:var(--light);margin-top:2px;">${r.products?.brand||''}${r.dosage?' · '+r.dosage:''}${r.frequency?' · '+r.frequency:''}</div>
+        ${r.return_date?`<div style="font-size:11px;color:var(--sage);margin-top:2px;">📅 Retorno: ${formatDate(r.return_date+'T12:00:00')}</div>`:''}
+        ${r.decline_reason?`<div style="font-size:11px;color:var(--red);margin-top:3px;">✕ ${r.decline_reason}</div>`:''}
+      </div>
+      <div style="font-size:12px;color:var(--light);">${formatDate(r.created_at)}</div>
+      <div>${statusBadge(r.status)}</div>
+      <div><button class="wa-btn" onclick="resendWhatsapp('${r.id}')">Reenviar</button></div>
+    </div>`).join('');
+    return `<div style="background:white;border-radius:14px;border:1px solid var(--border);overflow:hidden;margin-bottom:14px;">
+      <div style="background:#f9f9f7;padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div class="patient-info"><div class="patient-avatar">${(patient?.name||'?')[0].toUpperCase()}</div><div><div style="font-weight:700;font-size:13px;">${patient?.name||'-'}</div><div style="font-size:11px;color:var(--light);">${patient?.whatsapp||''}</div></div></div>
+        <span style="font-size:11px;color:var(--light);">${pRecs.length} produto${pRecs.length>1?'s':''}</span>
+      </div>${prodRows}</div>`;
+  }).join('');
+}
+
+async function loadPatients(){
+  const{data}=await sb.from('patients').select('*').eq('doctor_id',currentDoctor.id).order('name');
+  allPatients=data||[];
+}
+
+function renderPatients(filtered){
+  const pats=filtered!==undefined?filtered:allPatients;
+  const el=document.getElementById('patientsList');
+  if(!pats.length){el.innerHTML='<div class="empty"><div class="empty-title">Nenhum paciente cadastrado</div><div class="empty-sub">Adicione pacientes para enviar recomendações mais rápido</div><button class="btn btn-sage" onclick="openAddPatientModal()">+ Novo Paciente</button></div>';return;}
+  el.innerHTML='<div class="table-wrap"><table><thead><tr><th>Nome</th><th>WhatsApp</th><th>CPF</th><th>Desde</th><th>Ações</th></tr></thead><tbody>'+
+    pats.map(p=>`<tr>
+      <td><div class="patient-info"><div class="patient-avatar">${p.name[0].toUpperCase()}</div><div><div style="font-weight:600;">${p.name}</div>${p.notes?`<div style="font-size:11px;color:var(--light);margin-top:2px;">📝 ${p.notes.substring(0,40)}${p.notes.length>40?'...':''}</div>`:''}</div></div></td>
+      <td>${p.whatsapp}</td><td style="font-size:12px;color:var(--light);">${p.cpf||'-'}</td>
+      <td style="color:var(--light);">${formatDate(p.created_at)}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="newRecForPatient('${p.id}','${p.name.replace(/'/g,'')}','${p.whatsapp}')">+ Recomendar</button>
+        <button class="btn btn-ghost btn-sm" onclick="openPatientNotes('${p.id}')">Anotações</button>
+        <button class="btn btn-ghost btn-sm" onclick="openPatientHistory('${p.id}','${p.name.replace(/'/g,'')}','historico')">📋 Histórico</button>
+        <button class="btn btn-ghost btn-sm" onclick="openPatientHistory('${p.id}','${p.name.replace(/'/g,'')}','saude')">🩺 Saúde</button>
+        <button class="btn btn-ghost btn-sm" onclick="openPatientHistory('${p.id}','${p.name.replace(/'/g,'')}','exames')">🔬 Exames</button>
+      </td></tr>`).join('')+'</tbody></table></div>';
+}
+
+function filterPatients(q){
+  if(!q){renderPatients(allPatients);return;}
+  const qn=removeAcentos(q);
+  renderPatients(allPatients.filter(p=>removeAcentos(p.name).includes(qn)||p.whatsapp.includes(q)));
+}
+function openAddPatientModal(){openModal('modalPatient');}
+
+async function savePatient(){
+  const name=document.getElementById('mpName').value.trim();
+  const whatsapp=document.getElementById('mpWhatsapp').value.trim();
+  const cpfRaw=document.getElementById('mpCpf')?.value.trim()||'';
+  const notes=document.getElementById('mpNotes')?.value.trim()||'';
+  if(!name||!whatsapp)return showToast('Preencha nome e WhatsApp','error');
+  if(cpfRaw&&!validarCpf(cpfRaw))return showToast('CPF inválido','error');
+  if(cpfRaw){
+    const cpfDigits=cpfRaw.replace(/\D/g,'');
+    const{data:existing}=await sb.from('patients').select('id,name').eq('cpf',cpfDigits).limit(1);
+    if(existing?.length)return showToast('CPF já cadastrado: '+existing[0].name,'error');
+  }
+  const{data,error}=await sb.from('patients').insert([{doctor_id:currentDoctor.id,name,whatsapp,cpf:cpfRaw?cpfRaw.replace(/\D/g,''):null,notes:notes||null}]).select().single();
+  if(error)return showToast('Erro ao salvar paciente','error');
+  allPatients.push(data);allPatients.sort((a,b)=>a.name.localeCompare(b.name));
+  renderPatients();closeModal('modalPatient');
+  document.getElementById('mpName').value='';document.getElementById('mpWhatsapp').value='';
+  if(document.getElementById('mpCpf'))document.getElementById('mpCpf').value='';
+  if(document.getElementById('mpNotes'))document.getElementById('mpNotes').value='';
+  showToast('Paciente salvo!','success');
+}
+
+let doctorFavorites=new Set(), currentProductTab='favoritos';
+
+async function loadProducts(){
+  const{data}=await sb.from('products').select('*').eq('active',true).order('name');
+  allProducts=data||[];
+  const{data:marcasData}=await sb.from('marcas').select('*').order('nome');
+  allMarcas=(marcasData||[]).filter(m=>m.ativo!==false);
+  if(currentDoctor){
+    const{data:favs}=await sb.from('doctor_favorites').select('product_id').eq('doctor_id',currentDoctor.id);
+    doctorFavorites=new Set((favs||[]).map(f=>f.product_id));
+  }
+}
+
+function setProductTab(tab){
+  currentProductTab=tab;
+  document.querySelectorAll('.prod-tab').forEach(b=>b.classList.remove('prod-tab-active'));
+  event.target.classList.add('prod-tab-active');
+  filterProducts(document.getElementById('productSearchPage').value);
+}
+
+function renderProducts(filtered){
+  let prods=filtered!==undefined?filtered:allProducts;
+  if(currentProductTab==='favoritos')prods=prods.filter(p=>doctorFavorites.has(p.id));
+  else if(currentProductTab!=='todos')prods=prods.filter(p=>(p.category||'')===currentProductTab);
+  prods=[...prods].sort((a,b)=>{
+    const af=doctorFavorites.has(a.id)?0:1,bf=doctorFavorites.has(b.id)?0:1;
+    if(af!==bf)return af-bf;return a.name.localeCompare(b.name);
+  });
+  const el=document.getElementById('productsList');
+  if(!prods.length){
+    const msg=currentProductTab==='favoritos'?'Nenhum favorito ainda. Clique na estrela de um produto para favoritar.':'Nenhum produto nesta categoria.';
+    el.innerHTML=`<div class="empty"><div class="empty-title">${msg}</div></div>`;return;
+  }
+  el.innerHTML='<div class="table-wrap"><table><thead><tr><th></th><th>Produto</th><th>Marca</th><th>Categoria</th><th>Link</th></tr></thead><tbody>'+
+    prods.map(p=>{const isFav=doctorFavorites.has(p.id);return `<tr>
+      <td><button class="fav-star ${isFav?'active':''}" onclick="toggleFavorite('${p.id}',this)">★</button></td>
+      <td style="font-weight:600;">${p.name}${p.doctor_id?' <span style="font-size:10px;color:var(--light);">(seu)</span>':''}</td>
+      <td>${p.brand||'-'}</td><td><span class="badge badge-sage">${p.category||'-'}</span></td>
+      <td>${p.purchase_url?'<a href="'+p.purchase_url+'" target="_blank" style="color:var(--sage);font-size:12px;">Ver ↗</a>':'<span style="color:var(--light);font-size:12px;">Sem link</span>'}</td>
+    </tr>`;}).join('')+'</tbody></table></div>';
+}
+
+async function toggleFavorite(productId,btn){
+  if(!currentDoctor)return;
+  const isFav=doctorFavorites.has(productId);
+  if(isFav){await sb.from('doctor_favorites').delete().eq('doctor_id',currentDoctor.id).eq('product_id',productId);doctorFavorites.delete(productId);btn.classList.remove('active');showToast('Removido dos favoritos','success');}
+  else{await sb.from('doctor_favorites').insert([{doctor_id:currentDoctor.id,product_id:productId}]);doctorFavorites.add(productId);btn.classList.add('active');showToast('Adicionado aos favoritos','success');}
+  if(currentProductTab==='favoritos')renderProducts();
+}
+
+function filterProducts(q){
+  if(!q){renderProducts(allProducts);return;}
+  const qn=removeAcentos(q);
+  renderProducts(allProducts.filter(p=>removeAcentos(p.name).includes(qn)||removeAcentos(p.brand||'').includes(qn)));
+}
+function openAddProductModal(){openModal('modalProduct');}
+
+async function saveProduct(){
+  const name=document.getElementById('prName').value.trim();
+  const brand=document.getElementById('prBrand').value.trim();
+  const category=document.getElementById('prCategory').value.trim();
+  const purchase_url=document.getElementById('prUrl').value.trim();
+  if(!name)return showToast('Preencha o nome do produto','error');
+  const{data,error}=await sb.from('products').insert([{name,brand,category,purchase_url,active:true,doctor_id:currentDoctor?.id||null}]).select().single();
+  if(error)return showToast('Erro ao salvar produto','error');
+  allProducts.push(data);allProducts.sort((a,b)=>a.name.localeCompare(b.name));
+  await sb.from('doctor_favorites').insert([{doctor_id:currentDoctor.id,product_id:data.id}]);
+  doctorFavorites.add(data.id);renderProducts();closeModal('modalProduct');
+  document.getElementById('prName').value='';document.getElementById('prBrand').value='';
+  document.getElementById('prCategory').value='';
+  showToast('Produto adicionado e favoritado','success');
+}
+
+function resetNewRec(){
+  selectedPatient=null;selectedProduct=null;selectedProducts=[];
+  compComponentes=[{nome:'',conc:''}];tipoProdutoAtual='pronto';setTipoProduto('pronto');
+  document.getElementById('patientSearch').value='';
+  document.getElementById('newPatientName').value='';document.getElementById('newPatientWhatsapp').value='';
+  if(document.getElementById('newPatientEmail'))document.getElementById('newPatientEmail').value='';
+  if(document.getElementById('newPatientCpf'))document.getElementById('newPatientCpf').value='';
+  document.getElementById('productSearch').value='';
+  selectedMarcas=[];renderMarcasSelecionadas();
+  if(document.getElementById('marcaSearch')) document.getElementById('marcaSearch').value='';
+  document.getElementById('recDosage').value='';document.getElementById('recFrequency').value='';
+  document.getElementById('recDuration').value='';document.getElementById('recReturnDate').value='';
+  document.getElementById('recNotes').value='';
+  document.getElementById('selectedPatientChip').style.display='none';
+  document.getElementById('selectedProductChip').style.display='none';
+  document.getElementById('addedProductsList').innerHTML='';
+  document.getElementById('prodCount').textContent='0 produto(s)';
+  goToStep(1);
+}
+
+function addProductToList(){
+  if(tipoProdutoAtual==='pronto'){
+    if(!selectedProduct)return showToast('Selecione um produto primeiro','error');
+    // Verifica se é controlado
+    if(precisaReceita(selectedProduct.name)){
+      mostrarModalControlado(selectedProduct.name, function() {
+        selectedProducts.push({
+          tipo:'pronto',product:selectedProduct,
+          dosage:document.getElementById('recDosage').value.trim(),
+          frequency:document.getElementById('recFrequency').value.trim(),
+          duration:document.getElementById('recDuration').value.trim(),
+          return_date:document.getElementById('recReturnDate').value||null,
+          notes:document.getElementById('recNotes').value.trim(),
+          marcas_sugeridas: selectedMarcas.length ? selectedMarcas.map(m=>({id:m.id,nome:m.nome,site_url:m.site_url})) : null
+        });
+        selectedMarcas=[];renderMarcasSelecionadas();
+        selectedProduct=null;
+        document.getElementById('productSearch').value='';document.getElementById('recDosage').value='';
+        document.getElementById('recFrequency').value='';document.getElementById('recDuration').value='';
+        document.getElementById('recReturnDate').value='';document.getElementById('recNotes').value='';
+        document.getElementById('selectedProductChip').style.display='none';
+        renderAddedProducts();showToast('Produto adicionado!','success');
+      });
+      return;
+    }
+    selectedProducts.push({
+      tipo:'pronto',product:selectedProduct,
+      dosage:document.getElementById('recDosage').value.trim(),
+      frequency:document.getElementById('recFrequency').value.trim(),
+      duration:document.getElementById('recDuration').value.trim(),
+      return_date:document.getElementById('recReturnDate').value||null,
+      notes:document.getElementById('recNotes').value.trim(),
+      marcas_sugeridas: selectedMarcas.length ? selectedMarcas.map(m=>({id:m.id,nome:m.nome,site_url:m.site_url})) : null
+    });
+    selectedMarcas=[];renderMarcasSelecionadas();
+    selectedProduct=null;
+    document.getElementById('productSearch').value='';document.getElementById('recDosage').value='';
+    document.getElementById('recFrequency').value='';document.getElementById('recDuration').value='';
+    document.getElementById('recReturnDate').value='';document.getElementById('recNotes').value='';
+    document.getElementById('selectedProductChip').style.display='none';
+  } else {
+    const nome=document.getElementById('compNome')?.value.trim();
+    if(!nome)return showToast('Preencha o nome do manipulado','error');
+    const comps=compComponentes.filter(c=>c.nome.trim());
+    if(!comps.length)return showToast('Adicione pelo menos um componente','error');
+    selectedProducts.push({tipo:'comp',formula:{
+      nome,componentes:comps,
+      veiculo:document.getElementById('compVeiculo')?.value||'',
+      qtd:document.getElementById('compQtd')?.value.trim()||'',
+      dosage:document.getElementById('compDosage')?.value.trim()||'',
+      frequency:document.getElementById('compFrequency')?.value.trim()||'',
+      duration:document.getElementById('compDuration')?.value.trim()||'',
+      notes:document.getElementById('compNotes')?.value.trim()||''
+    }});
+    document.getElementById('compNome').value='';document.getElementById('compVeiculo').value='';
+    document.getElementById('compQtd').value='';document.getElementById('compDosage').value='';
+    document.getElementById('compFrequency').value='';document.getElementById('compDuration').value='';
+    document.getElementById('compNotes').value='';compComponentes=[{nome:'',conc:''}];renderCompComponentes();
+  }
+  renderAddedProducts();showToast('Produto adicionado!','success');
+}
+
+function renderAddedProducts(){
+  const el=document.getElementById('addedProductsList');
+  const count=selectedProducts.length;
+  document.getElementById('prodCount').textContent=count+' produto(s)';
+  document.getElementById('addFormTitle').textContent='Produto '+(count+1);
+  if(!count){el.innerHTML='';return;}
+  el.innerHTML=selectedProducts.map((p,i)=>{
+    const isComp=p.tipo==='comp';
+    const name=isComp?p.formula.nome:p.product.name;
+    const detail=isComp?[p.formula.veiculo,p.formula.dosage,p.formula.frequency,p.formula.duration].filter(Boolean).join(' · '):[p.dosage,p.frequency,p.duration].filter(Boolean).join(' · ');
+    const retorno=(!isComp&&p.return_date)?`<div style="font-size:11px;color:var(--sage);margin-top:3px;">📅 Retorno: ${formatDate(p.return_date+'T12:00:00')}</div>`:'';
+    const color=isComp?'var(--comp)':'var(--sage)';const bg=isComp?'var(--comp-pale)':'var(--sage-pale)';
+    const border=isComp?'var(--comp-border)':'var(--sage-light)';const label=isComp?'Manipulado':'Produto pronto';
+    return `<div style="background:${bg};border:1.5px solid ${border};border-radius:12px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:flex-start;justify-content:space-between;">
+      <div style="flex:1;">
+        <div style="font-size:10px;font-weight:700;color:${color};letter-spacing:0.8px;text-transform:uppercase;margin-bottom:3px;">${label}</div>
+        <div style="font-size:14px;font-weight:700;color:${color};">${name}</div>
+        ${detail?`<div style="font-size:12px;color:var(--mid);margin-top:3px;">${detail}</div>`:''}
+        ${retorno}
+      </div>
+      <button onclick="removeProduct(${i})" style="background:none;border:none;cursor:pointer;color:var(--light);font-size:20px;padding:0 0 0 8px;">×</button>
+    </div>`;
+  }).join('');
+}
+
+function removeProduct(idx){selectedProducts.splice(idx,1);renderAddedProducts();}
+
+function goToStep(n){
+  document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-step'+n).classList.add('active');
+  for(let i=1;i<=3;i++){
+    const ind=document.getElementById('step'+i+'-indicator');
+    ind.className='step'+(i<n?' done':i===n?' active':'');
+  }
+}
+
+function goToStep2(){
+  const name=document.getElementById('newPatientName').value.trim();
+  const wa=document.getElementById('newPatientWhatsapp').value.trim();
+  if(!selectedPatient&&(!name||!wa))return showToast('Selecione ou adicione um paciente','error');
+  document.getElementById('addFormTitle').textContent='Produto '+(selectedProducts.length+1);
+  goToStep(2);
+}
+
+function goToStep3(){
+  if(tipoProdutoAtual==='pronto'&&selectedProduct){
+    selectedProducts.push({
+      tipo:'pronto',product:selectedProduct,
+      dosage:document.getElementById('recDosage').value.trim(),
+      frequency:document.getElementById('recFrequency').value.trim(),
+      duration:document.getElementById('recDuration').value.trim(),
+      return_date:document.getElementById('recReturnDate').value||null,
+      notes:document.getElementById('recNotes').value.trim(),
+      marcas_sugeridas: selectedMarcas.length ? selectedMarcas.map(m=>({id:m.id,nome:m.nome,site_url:m.site_url})) : null
+    });
+    selectedMarcas=[];renderMarcasSelecionadas();selectedProduct=null;
+  } else if(tipoProdutoAtual==='comp'){
+    const nome=document.getElementById('compNome')?.value.trim();
+    const comps=compComponentes.filter(c=>c.nome.trim());
+    if(nome&&comps.length){selectedProducts.push({tipo:'comp',formula:{nome,componentes:comps,veiculo:document.getElementById('compVeiculo')?.value||'',qtd:document.getElementById('compQtd')?.value.trim()||'',dosage:document.getElementById('compDosage')?.value.trim()||'',frequency:document.getElementById('compFrequency')?.value.trim()||'',duration:document.getElementById('compDuration')?.value.trim()||'',notes:document.getElementById('compNotes')?.value.trim()||''}});}
+  }
+  if(selectedProducts.length===0)return showToast('Adicione pelo menos um produto','error');
+  const patName=selectedPatient?selectedPatient.name:document.getElementById('newPatientName').value.trim();
+  const patWa=selectedPatient?selectedPatient.whatsapp:document.getElementById('newPatientWhatsapp').value.trim();
+  const hasComp=selectedProducts.some(p=>p.tipo==='comp');
+  document.getElementById('farmaciasSection').style.display=hasComp?'block':'none';
+  document.getElementById('summaryBox').innerHTML=`
+    <div style="font-size:11px;color:var(--sage-light);font-weight:700;letter-spacing:1px;margin-bottom:12px;">RESUMO DA RECOMENDAÇÃO</div>
+    <div class="summary-row"><span class="summary-label">Paciente</span><span class="summary-value">${patName}</span></div>
+    <div class="summary-row"><span class="summary-label">WhatsApp</span><span class="summary-value">${patWa}</span></div>
+    <div class="summary-row"><span class="summary-label">Produtos</span><span class="summary-value">${selectedProducts.length} produto(s)</span></div>
+    ${selectedProducts.map(p=>{
+      if(p.tipo==='comp')return `<div style="background:var(--comp-pale);border:1px solid var(--comp-border);border-radius:10px;padding:10px 12px;margin-top:8px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--comp);margin-bottom:3px;">Manipulado</div><div style="font-size:13px;font-weight:600;color:var(--comp);">${p.formula.nome}</div><div style="font-size:11px;color:var(--mid);margin-top:3px;">${p.formula.componentes.map(c=>c.nome+(c.conc?' '+c.conc:'')).join(', ')}</div></div>`;
+      return `<div style="background:white;border-radius:10px;padding:10px 12px;margin-top:8px;border:1px solid var(--border);"><div style="font-size:13px;font-weight:600;color:var(--sage-dark);">${p.product.name}</div><div style="font-size:12px;color:var(--light);margin-top:3px;">${[p.dosage,p.frequency,p.duration].filter(Boolean).join(' · ')}</div>${p.return_date?`<div style="font-size:12px;color:var(--sage);margin-top:3px;">📅 Retorno: ${formatDate(p.return_date+'T12:00:00')}</div>`:''}</div>`;
+    }).join('')}`;
+  // Verifica se tem produto controlado na lista
+  const controladosNaLista = selectedProducts.filter(p => p.tipo === 'pronto' && precisaReceita(p.product?.name));
+  if (controladosNaLista.length > 0) {
+    const nomes = controladosNaLista.map(p => p.product.name).join(', ');
+    const old = document.getElementById('modalControladoStep3');
+    if (old) old.remove();
+    const modal = document.createElement('div');
+    modal.id = 'modalControladoStep3';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.innerHTML = `
+      <div style="background:white;border-radius:20px;padding:28px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="width:52px;height:52px;border-radius:26px;background:#fff0f0;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">⚠️</div>
+        <h3 style="font-size:17px;font-weight:700;color:#0f1f1a;text-align:center;margin-bottom:8px;">Receita especial necessária</h3>
+        <p style="font-size:13px;color:#666;text-align:center;line-height:1.6;margin-bottom:20px;">
+          <strong>${nomes}</strong> ${controladosNaLista.length > 1 ? 'são medicamentos controlados' : 'é um medicamento controlado'} e ${controladosNaLista.length > 1 ? 'exigem' : 'exige'} receita médica especial.<br><br>
+          Como você vai emitir a receita?
+        </p>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <a href="https://memed.com.br" target="_blank" onclick="document.getElementById('modalControladoStep3').querySelector('.btn-confirmar').style.display='block';" style="background:#2563eb;color:white;border-radius:12px;padding:14px;font-size:14px;font-weight:700;text-align:center;text-decoration:none;display:block;">
+            💊 Emitir pelo Memed
+          </a>
+          <a href="https://mevo.com.br" target="_blank" onclick="document.getElementById('modalControladoStep3').querySelector('.btn-confirmar').style.display='block';" style="background:#7c3aed;color:white;border-radius:12px;padding:14px;font-size:14px;font-weight:700;text-align:center;text-decoration:none;display:block;">
+            📋 Emitir pelo Mevo
+          </a>
+          <div class="btn-confirmar" style="display:none;background:#e8f5f0;border-radius:12px;padding:14px;border:2px solid #1D9E75;">
+            <div style="font-size:12px;color:#1D9E75;font-weight:600;margin-bottom:8px;text-align:center;">✓ Receita emitida? Envie para o paciente:</div>
+            <button onclick="document.getElementById('modalControladoStep3').remove();_irParaStep3();" style="background:#1D9E75;color:white;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;width:100%;">
+              Enviar no app e WhatsApp →
+            </button>
+          </div>
+          <button onclick="document.getElementById('modalControladoStep3').remove();_irParaStep3();" style="background:#f0f0f0;color:#555;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;width:100%;">
+            📝 Já receitei no papel — continuar
+          </button>
+          <button onclick="document.getElementById('modalControladoStep3').remove();" style="background:transparent;color:#bbb;border:none;padding:8px;font-size:13px;cursor:pointer;width:100%;">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    return;
+  }
+  _irParaStep3();
+}
+
+function _irParaStep3() {
+  goToStep(3);
+}
+
+async function sendRecommendation(){
+  const btn=document.getElementById('sendBtn');btn.disabled=true;btn.textContent='Enviando...';
+  let patientId=selectedPatient?.id;
+  const patName=selectedPatient?selectedPatient.name:document.getElementById('newPatientName').value.trim();
+  const patWa=selectedPatient?selectedPatient.whatsapp:document.getElementById('newPatientWhatsapp').value.trim();
+
+  // SAFARI FIX: abrir janela do WhatsApp ANTES de qualquer await
+  const waNumber=patWa.replace(/\D/g,'');
+  const waWindow=window.open('','_blank');
+
+  if(!patientId){
+    const patEmail=document.getElementById('newPatientEmail')?.value.trim()||null;
+    const{data:newPat,error}=await sb.from('patients').insert([{doctor_id:currentDoctor.id,name:patName,whatsapp:patWa,email:patEmail}]).select().single();
+    if(error){btn.disabled=false;btn.textContent='Enviar via WhatsApp';if(waWindow)waWindow.close();return showToast('Erro ao criar paciente','error');}
+    patientId=newPat.id;allPatients.push(newPat);
+  }
+  const recs=[];
+  for(const p of selectedProducts){
+    if(p.tipo==='comp'){
+      const formulaJson=JSON.stringify({__manipulado:true,...p.formula});
+      const{data:rec,error}=await sb.from('recommendations').insert([{doctor_id:currentDoctor.id,patient_id:patientId,product_id:null,dosage:p.formula.dosage,frequency:p.formula.frequency,duration:p.formula.duration,notes:formulaJson,status:'not_started'}]).select().single();
+      if(!error&&rec)recs.push({...rec,_compFormula:p.formula,products:{name:p.formula.nome,brand:'Manipulado',purchase_url:null}});
+    } else {
+      const{data:rec,error}=await sb.from('recommendations').insert([{doctor_id:currentDoctor.id,patient_id:patientId,product_id:p.product.id,dosage:p.dosage,frequency:p.frequency,duration:p.duration,return_date:p.return_date||null,notes:p.notes,marcas_sugeridas:p.marcas_sugeridas||null,status:'not_started'}]).select().single();
+      if(!error&&rec)recs.push({...rec,products:p.product});
+    }
+  }
+  if(!recs.length){btn.disabled=false;btn.textContent='Enviar via WhatsApp';if(waWindow)waWindow.close();return showToast('Erro ao salvar recomendações','error');}
+  const msg=buildWhatsAppMessage(patName,recs,patientId);
+  const waUrl='https://wa.me/55'+waNumber+'?text='+encodeURIComponent(msg);
+  if(waWindow){waWindow.location.href=waUrl;}else{const a=document.createElement('a');a.href=waUrl;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);}
+  const compRecs = recs.filter(r => r._compFormula);
+  if (compRecs.length) {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const token = session?.access_token || SUPABASE_KEY;
+      for (const cr of compRecs) {
+        try {
+          await fetch('https://iwrfgdfxvyqdkqdtrrxg.supabase.co/functions/v1/solicitar-cotacao', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ recommendation_id: cr.id }),
+          });
+        } catch(e) { console.log('Erro ao solicitar cotacao:', e); }
+      }
+    } catch(e) { console.log('Erro ao obter sessao:', e); }
+  }
+  btn.disabled=false;btn.textContent='Enviar via WhatsApp';
+  showToast('Recomendação enviada!','success');
+  recs.forEach(r=>allRecommendations.unshift(r));resetNewRec();showPage('dashboard');
+}
+
+// CORRIGIDO: link usa doctor_id + patient_id para mostrar TODAS as recomendações
+function buildWhatsAppMessage(patName,recs,patientId){
+  const rawName=currentDoctor?.name||'';const specialty=currentDoctor?.specialty||'';
+  const hasTitle=/^dr\.?\s|^dra\.?\s/i.test(rawName.trim());
+  const docTitle=hasTitle?rawName:('Dr. '+rawName);
+  const patientLink='https://synkasaude.com.br/prescreve-patient.html?doctor='+currentDoctor.id+'&patient='+patientId;
+  const firstName=patName.split(' ')[0];
+
+  let msg='Olá, *'+firstName+'*! 👋\n\n';
+  msg+=docTitle+(specialty?' — '+specialty:'')+' preparou '+(recs.length>1?recs.length+' recomendações':'uma recomendação')+' para você:\n\n';
+
+  recs.forEach((rec,i)=>{
+    const isComp=!!rec._compFormula;
+    const num = recs.length > 1 ? (i+1)+'. ' : '';
+    if(isComp){
+      const f=rec._compFormula;
+      msg+=num+'💊 *'+f.nome+'* _(Manipulado)_\n';
+      if(f.dosage)msg+='   › Aplicação: '+f.dosage+'\n';
+      if(f.frequency)msg+='   › Frequência: '+f.frequency+'\n';
+      if(f.duration)msg+='   › Duração: '+f.duration+'\n';
+      if(f.notes)msg+='   › Obs: '+f.notes+'\n';
+      msg+='   _Farmácia entrará em contato com o orçamento._\n';
+    } else {
+      const product=rec.products;
+      msg+=num+'💊 *'+product.name+'*'+(product.brand?' ('+product.brand+')':'')+'\n';
+      if(rec.dosage)msg+='   › Dosagem: '+rec.dosage+'\n';
+      if(rec.frequency)msg+='   › Frequência: '+rec.frequency+'\n';
+      if(rec.duration)msg+='   › Duração: '+rec.duration+'\n';
+      if(rec.return_date)msg+='   › 📅 Retorno: '+formatDate(rec.return_date+'T12:00:00')+'\n';
+      if(rec.notes)msg+='   › Obs: '+rec.notes+'\n';
+    }
+    if(i<recs.length-1)msg+='\n';
+  });
+
+  msg+='\n📱 *Acesse suas recomendações:*\n'+patientLink;
+  msg+='\n\n_synka — saúde conectada_';
+  return msg;
+}
+
+async function resendWhatsapp(recId){
+  const rec=allRecommendations.find(r=>r.id===recId);if(!rec)return;
+  const product=rec.products||allProducts.find(p=>p.id===rec.product_id);
+  const patient=rec.patients||allPatients.find(p=>p.id===rec.patient_id);
+  if(!patient||!product)return showToast('Dados nao encontrados','error');
+  const{data:allPatRecs}=await sb.from('recommendations').select('*, products(*)').eq('patient_id',rec.patient_id).eq('doctor_id',currentDoctor.id).order('created_at',{ascending:false}).limit(10);
+  const recs=allPatRecs||[{...rec,products:product}];
+  const msg=buildWhatsAppMessage(patient.name,recs,rec.patient_id);
+  const waNumber=patient.whatsapp.replace(/\D/g,'');
+  window.open('https://wa.me/55'+waNumber+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+async function updateStatus(recId,status){
+  await sb.from('recommendations').update({status}).eq('id',recId);
+  const rec=allRecommendations.find(r=>r.id===recId);if(rec)rec.status=status;
+  showToast('Status atualizado','success');
+}
+
+function newRecForPatient(id,name,whatsapp){
+  showPage('new-rec');selectedPatient={id,name,whatsapp};
+  document.getElementById('selectedPatientChip').style.display='block';
+  document.getElementById('selectedPatientChip').innerHTML=`<div class="selected-chip"><div><div class="chip-name">${name}</div><div class="chip-detail">${whatsapp}</div></div><span class="chip-remove" onclick="clearPatient()">×</span></div>`;
+}
+function clearPatient(){selectedPatient=null;document.getElementById('selectedPatientChip').style.display='none';document.getElementById('patientSearch').value='';}
+
+function searchPatients(q){
+  const dd=document.getElementById('patientDropdown');
+  if(!q||q.length<2){dd.classList.remove('open');return;}
+  const qn=removeAcentos(q);
+  const results=allPatients.filter(p=>removeAcentos(p.name).includes(qn)).slice(0,6);
+  if(!results.length){dd.classList.remove('open');return;}
+  dd.innerHTML=results.map(p=>`<div class="ac-item" onclick="selectPatient('${p.id}','${p.name}','${p.whatsapp}')"><div class="ac-item-name">${p.name}</div><div class="ac-item-detail">${p.whatsapp}</div></div>`).join('');
+  dd.classList.add('open');
+}
+
+function selectPatient(id,name,whatsapp){
+  selectedPatient={id,name,whatsapp};document.getElementById('patientSearch').value=name;
+  document.getElementById('patientDropdown').classList.remove('open');
+  document.getElementById('selectedPatientChip').style.display='block';
+  document.getElementById('selectedPatientChip').innerHTML=`<div class="selected-chip"><div><div class="chip-name">${name}</div><div class="chip-detail">${whatsapp}</div></div><span class="chip-remove" onclick="clearPatient()">×</span></div>`;
+}
+
+function removeAcentos(str){return str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+
+function searchProducts(q){
+  const dd=document.getElementById('productDropdown');
+  if(!q||q.length<2){dd.classList.remove('open');return;}
+  const qn=removeAcentos(q);
+  let results=allProducts.filter(p=>removeAcentos(p.name).includes(qn)||removeAcentos(p.brand||'').includes(qn));
+  results.sort((a,b)=>{const af=doctorFavorites.has(a.id)?0:1,bf=doctorFavorites.has(b.id)?0:1;return af-bf;});
+  results=results.slice(0,8);
+  const createOption = `<div class="ac-item" onclick="criarProdutoNaHora('${q.replace(/'/g,"\\'")}')"><div style="display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">➕</span><div><div class="ac-item-name" style="color:var(--sage);">Criar "${q}"</div><div class="ac-item-detail">Adicionar novo produto</div></div></div></div>`;
+  if(!results.length){
+    dd.innerHTML = createOption;
+    dd.classList.add('open');
+    return;
+  }
+  dd.innerHTML=results.map(p=>{const isFav=doctorFavorites.has(p.id);return `<div class="ac-item" onclick="selectProduct('${p.id}')"><div style="display:flex;align-items:center;gap:6px;">${isFav?'<span style="font-size:13px;">⭐</span>':'<span style="font-size:13px;opacity:0.15;">⭐</span>'}<div><div class="ac-item-name">${p.name}</div><div class="ac-item-detail">${p.brand||''}</div></div></div></div>`;}).join('') + createOption;
+  dd.classList.add('open');
+}
+
+function selectProduct(id){
+  const p=allProducts.find(x=>x.id===id);if(!p)return;
+  selectedProduct=p;document.getElementById('productSearch').value=p.name;
+  document.getElementById('productDropdown').classList.remove('open');
+  const isControlado = precisaReceita(p.name);
+  document.getElementById('selectedProductChip').style.display='block';
+  document.getElementById('selectedProductChip').innerHTML=`<div class="selected-chip" style="${isControlado?'background:#fff0f0;border-color:#e05555;':''}"><div><div class="chip-name">${p.name}${isControlado?' <span style=\"background:#e05555;color:white;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:6px;\">CONTROLADO</span>':''}</div><div class="chip-detail">${p.brand||''}</div></div><span class="chip-remove" onclick="clearProduct()">×</span></div>`;
+}
+function clearProduct(){selectedProduct=null;document.getElementById('selectedProductChip').style.display='none';document.getElementById('productSearch').value='';}
+
+function searchMarcas(q) {
+  const dd = document.getElementById('marcaDropdown');
+  if (!dd) return;
+  if (!q || q.length < 1) { dd.style.display='none'; return; }
+  const qn = removeAcentos(q.toLowerCase());
+  const results = allMarcas.filter(m => removeAcentos(m.nome.toLowerCase()).includes(qn) && !selectedMarcas.find(s => s.id === m.id));
+  if (!results.length) { dd.innerHTML='<div style="padding:10px 14px;font-size:12px;color:#bbb;">Nenhuma marca encontrada</div>'; dd.style.display='block'; return; }
+  dd.innerHTML = results.slice(0,6).map(m =>
+    `<div onclick="addMarca('${m.id}')" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #f0f0f0;" onmouseover="this.style.background='#f5f7f6'" onmouseout="this.style.background='white'">${m.nome}</div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+function addMarca(id) {
+  if (selectedMarcas.length >= 3) { showToast('Máximo 3 marcas', 'error'); return; }
+  const marca = allMarcas.find(m => m.id === id);
+  if (!marca || selectedMarcas.find(m => m.id === id)) return;
+  selectedMarcas.push(marca);
+  document.getElementById('marcaSearch').value = '';
+  document.getElementById('marcaDropdown').style.display = 'none';
+  renderMarcasSelecionadas();
+}
+
+function removeMarca(id) {
+  selectedMarcas = selectedMarcas.filter(m => m.id !== id);
+  renderMarcasSelecionadas();
+}
+
+function renderMarcasSelecionadas() {
+  const el = document.getElementById('marcasSelecionadas');
+  if (!el) return;
+  if (!selectedMarcas.length) { el.innerHTML = '<span style="font-size:12px;color:#bbb;">Nenhuma marca selecionada</span>'; return; }
+  el.innerHTML = selectedMarcas.map(m =>
+    `<div style="display:flex;align-items:center;gap:6px;background:#e8f5f0;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:#1D9E75;">
+      ${m.nome}
+      <span onclick="removeMarca('${m.id}')" style="cursor:pointer;font-size:16px;line-height:1;color:#1D9E75;">×</span>
+    </div>`
+  ).join('');
+}
+
+async function criarProdutoNaHora(nome) {
+  document.getElementById('productDropdown').classList.remove('open');
+  const { data: novo, error } = await sb.from('products').insert({ name: nome, category: 'Outros', active: true }).select().single();
+  if (error || !novo) { showToast('Erro ao criar produto', 'error'); return; }
+  allProducts.push(novo);
+  selectProduct(novo.id);
+  showToast('Produto "' + nome + '" criado! Preencha os campos e clique em "+ Adicionar".', 'success');
+}
+
+document.addEventListener('click',e=>{if(!e.target.closest('.autocomplete-wrap'))document.querySelectorAll('.autocomplete-dropdown').forEach(d=>d.classList.remove('open'));});
+
+function statusBadge(status){
+  const map={not_started:['badge-warn','Nao iniciado'],active:['badge-green','Ativo'],completed:['badge-gray','Concluido']};
+  const[cls,label]=map[status]||['badge-gray',status];
+  return '<span class="badge '+cls+'">'+label+'</span>';
+}
+function formatDate(iso){if(!iso)return '-';return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});}
+function showToast(msg,type){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'')+' show';setTimeout(()=>t.className='toast',3000);}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});});
+
+function onCrmInput(){
+  crmValidated = false;
+  clearTimeout(crmValidationTimer);
+  const num = document.getElementById('regCrm').value.trim();
+  if(num.length < 4) return;
+  crmValidationTimer = setTimeout(validateCrmRealtime, 800);
+}
+
+async function validateCrmRealtime(){
+  const tipo = document.getElementById('regCrmType')?.value || 'CRM';
+  const num = document.getElementById('regCrm').value.trim();
+  const name = document.getElementById('regName').value.trim();
+  if(!num || num.length < 4) return;
+
+  const suportados = ['CRM','CRO','CRF','CRBM','CRP'];
+  if(!suportados.includes(tipo)){
+    crmValidated = true;
+    crmValidatedValue = tipo+'-'+num;
+    status.style.display = 'none';
+    return;
+  }
+
+  const cacheKey = tipo+'-'+num+'-'+name;
+  if(crmValidationCache[cacheKey]){
+    const cached = crmValidationCache[cacheKey];
+    crmValidated = cached.valido;
+    crmValidatedValue = tipo+'-'+num;
+    return;
+  }
+
+  const resultado = await validarConselho(tipo, num, name);
+  crmValidationCache[cacheKey] = resultado;
+  crmValidated = resultado.valido;
+  crmValidatedValue = tipo+'-'+num;
+}
+
+
+
+function maskCpf(input){
+  let v=input.value.replace(/\D/g,'').substring(0,11);
+  if(v.length>9)v=v.replace(/^(\d{3})(\d{3})(\d{3})(\d{1,2})$/,'$1.$2.$3-$4');
+  else if(v.length>6)v=v.replace(/^(\d{3})(\d{3})(\d{1,3})$/,'$1.$2.$3');
+  else if(v.length>3)v=v.replace(/^(\d{3})(\d{1,3})$/,'$1.$2');
+  input.value=v;
+}
+function validarCpf(cpf){
+  cpf=cpf.replace(/\D/g,'');
+  if(cpf.length!==11||/^(\d)\1+$/.test(cpf))return false;
+  let sum=0;for(let i=0;i<9;i++)sum+=parseInt(cpf[i])*(10-i);
+  let r=11-(sum%11);if(r>=10)r=0;if(r!==parseInt(cpf[9]))return false;
+  sum=0;for(let i=0;i<10;i++)sum+=parseInt(cpf[i])*(11-i);
+  r=11-(sum%11);if(r>=10)r=0;return r===parseInt(cpf[10]);
+}
+
+let notesPatientId=null;
+function parseDurToD(d){
+  if(!d)return 90;
+  const s=d.toLowerCase().trim(),n=parseFloat(s)||1;
+  if(s.includes('semana'))return Math.round(n*7);
+  if(s.includes('mes')||s.includes('mês'))return Math.round(n*30);
+  if(s.includes('ano'))return Math.round(n*365);
+  if(s.includes('dia'))return Math.round(n);
+  const p=parseInt(s);return isNaN(p)?90:p;
+}
+
+async function openPatientHistory(patId, patName, modo){
+  // Buscar paciente direto do Supabase
+  const { data: patData } = await sb.from('patients').select('*').eq('id', patId).single();
+  let pat = patData || allPatients.find(p=>p.id===patId) || {};
+
+  // Se não tem health_profile, busca por email (pode ter outro registro com o perfil)
+  if (!pat.health_profile && pat.email) {
+    const { data: patsEmail } = await sb.from('patients').select('*').ilike('email', pat.email);
+    if (patsEmail?.length) {
+      const comPerfil = patsEmail.find(p => p.health_profile && !p.health_profile.skipped);
+      if (comPerfil) pat = { ...pat, health_profile: comPerfil.health_profile };
+    }
+  }
+
+  // Busca exames por todos os IDs do mesmo email
+  let todosIds = [patId];
+  try {
+    if (pat.email) {
+      const { data: patsEmail } = await sb.from('patients').select('id').ilike('email', pat.email);
+      if (patsEmail?.length) todosIds = [...new Set([patId, ...patsEmail.map(p=>p.id)])];
+    }
+  } catch(e) { todosIds = [patId]; }
+
+  const patWa = (pat.whatsapp||'').replace(/[^0-9]/g,'');
+  const docName = currentDoctor?.name||'';
+  const modoTitulo = modo === 'saude' ? '🩺 Saúde — ' : modo === 'exames' ? '🔬 Exames — ' : '📋 Histórico — ';
+  document.getElementById('historyModalTitle').textContent = modoTitulo + patName;
+  const el = document.getElementById('historyContent');
+  el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--light);">Carregando...</div>';
+  openModal('modalPatientHistory');
+
+  // Se modo = saude, mostra só health profile
+  if (modo === 'saude') {
+    const hp = pat?.health_profile;
+    if (!hp || hp.skipped) {
+      el.innerHTML = '<div style="text-align:center;padding:30px;color:#888;"><div style="font-size:32px;margin-bottom:12px;">🩺</div><div>Este paciente ainda não preencheu o perfil de saúde.</div></div>';
+      return;
+    }
+    let hpHtml = '';
+    if (hp.alergias?.length && !hp.alergias.includes('Nenhuma conhecida')) {
+      hpHtml += '<div style="background:#fff0f0;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #ffd0d0;">';
+      hpHtml += '<div style="font-size:11px;font-weight:700;color:#e05555;margin-bottom:8px;">⚠️ ALERGIAS</div>';
+      hpHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+      hp.alergias.forEach(a => { hpHtml += '<span style="background:#fff0f0;color:#e05555;font-size:12px;padding:4px 10px;border-radius:20px;font-weight:600;border:1px solid #ffd0d0;">' + a + '</span>'; });
+      hpHtml += '</div></div>';
+    }
+    if (hp.condicoes?.length) {
+      hpHtml += '<div style="margin-bottom:14px;"><div style="font-size:11px;font-weight:700;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Condições de saúde</div>';
+      hpHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+      hp.condicoes.forEach(c => { hpHtml += '<span style="background:#f5f5f5;color:#444;font-size:12px;padding:4px 10px;border-radius:20px;">' + c + '</span>'; });
+      hpHtml += '</div></div>';
+    }
+    if (hp.medicamentos_em_uso) {
+      hpHtml += '<div style="margin-bottom:14px;"><div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Medicamentos em uso</div>';
+      hpHtml += '<div style="background:#f9f9f9;border-radius:10px;padding:10px 12px;font-size:13px;color:#333;">' + hp.medicamentos_em_uso + '</div></div>';
+    }
+    if (hp.estilo?.length) {
+      hpHtml += '<div style="margin-bottom:14px;"><div style="font-size:11px;font-weight:700;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Estilo de vida</div>';
+      hpHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+      hp.estilo.forEach(e => { hpHtml += '<span style="background:#f0f7ff;color:#3b82f6;font-size:12px;padding:4px 10px;border-radius:20px;">' + e + '</span>'; });
+      hpHtml += '</div></div>';
+    }
+    if (hp.objetivos?.length) {
+      hpHtml += '<div><div style="font-size:11px;font-weight:700;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">Objetivos</div>';
+      hpHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+      hp.objetivos.forEach(o => { hpHtml += '<span style="background:#e8f5f0;color:var(--sage);font-size:12px;padding:4px 10px;border-radius:20px;">' + o + '</span>'; });
+      hpHtml += '</div></div>';
+    }
+    el.innerHTML = hpHtml || '<div style="text-align:center;padding:20px;color:#888;">Sem dados de saúde preenchidos.</div>';
+    return;
+  }
+
+  // Se modo = exames, mostra só exames
+  if (modo === 'exames') {
+    const { data: exames } = await sb.from('exames').select('*').in('patient_id', todosIds).order('created_at', { ascending: false }).limit(20);
+    if (!exames || exames.length === 0) {
+      el.innerHTML = '<div style="text-align:center;padding:30px;color:#888;"><div style="font-size:32px;margin-bottom:12px;">🔬</div><div>Nenhum exame cadastrado ainda.</div></div>';
+      return;
+    }
+    let exHtml = '';
+    exames.forEach(exame => {
+      const itens = exame.itens || [];
+      const alterados = itens.filter(it => { const v=parseFloat(it.resultado),mn=parseFloat(it.refMin),mx=parseFloat(it.refMax); return !isNaN(v)&&((it.refMin&&v<mn)||(it.refMax&&v>mx)); });
+      exHtml += '<div style="background:white;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid #f0f0f0;">';
+      exHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
+      exHtml += '<div><div style="font-size:13px;font-weight:700;color:#0f1f1a;">' + exame.nome + '</div>';
+      exHtml += '<div style="font-size:11px;color:#999;margin-top:2px;">' + new Date(exame.data||exame.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}) + (exame.laboratorio?' · '+exame.laboratorio:'') + '</div></div>';
+      if (alterados.length) exHtml += '<span style="background:#fff0f0;color:#e05555;font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;">' + alterados.length + ' ALTERADO' + (alterados.length>1?'S':'') + '</span>';
+      exHtml += '</div>';
+      if (itens.length > 0) {
+        exHtml += '<div style="border-radius:8px;overflow:hidden;border:1px solid #f0f0f0;">';
+        itens.forEach((item, idx) => {
+          const v=parseFloat(item.resultado),mn=parseFloat(item.refMin),mx=parseFloat(item.refMax);
+          const baixo=!isNaN(v)&&item.refMin&&v<mn, alto=!isNaN(v)&&item.refMax&&v>mx;
+          const cor=baixo?'#3b82f6':alto?'#e05555':'var(--sage)';
+          const bg=baixo?'#f0f7ff':alto?'#fff5f5':(idx%2===0?'white':'#fafafa');
+          exHtml += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:'+bg+';border-bottom:'+(idx<itens.length-1?'1px solid #f0f0f0':'none')+';">';
+          exHtml += '<div><div style="font-size:12px;font-weight:500;color:#333;">'+item.nome+'</div>';
+          if (item.refMin||item.refMax) exHtml += '<div style="font-size:10px;color:#bbb;">Ref: '+(item.refMin||'—')+' – '+(item.refMax||'—')+(item.unidade?' '+item.unidade:'')+'</div>';
+          exHtml += '</div><div style="display:flex;align-items:center;gap:6px;">';
+          exHtml += '<div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:'+cor+';">'+(item.resultado||'—')+'</div>';
+          if (item.unidade) exHtml += '<div style="font-size:10px;color:#bbb;">'+item.unidade+'</div>';
+          exHtml += '</div>';
+          if (baixo||alto) exHtml += '<span style="background:'+cor+';color:white;font-size:8px;font-weight:700;padding:2px 5px;border-radius:4px;">'+(baixo?'↓':'↑')+'</span>';
+          exHtml += '</div></div>';
+        });
+        exHtml += '</div>';
+      }
+      exHtml += '</div>';
+    });
+    el.innerHTML = exHtml;
+    return;
+  }
+
+  // Buscar recomendações — cada produto é uma linha, agrupar por minuto
+  const { data: recs } = await sb.from('recommendations')
+    .select('*, products(*)')
+    .eq('doctor_id', currentDoctor.id)
+    .eq('patient_id', patId)
+    .order('created_at', { ascending: false });
+
+  // Buscar planos alimentares
+  const { data: plans } = await sb.from('meal_plans')
+    .select('*, meal_plan_items(*)')
+    .eq('doctor_id', currentDoctor.id)
+    .eq('patient_id', patId)
+    .order('created_at', { ascending: false });
+
+  let html = '';
+
+  // EM USO AGORA
+  const emUso = (recs||[]).filter(r=>r.status==='active');
+  if (emUso.length) {
+    html += '<div style="background:var(--sage-pale);border:1.5px solid var(--sage);border-radius:14px;padding:14px;margin-bottom:20px;">';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--sage);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">✅ Em uso agora (' + emUso.length + ')</div>';
+    emUso.forEach(r => {
+      const prod = r.products;
+      let days=0, pct=0, remaining='';
+      if(r.started_at && r.duration){
+        days = Math.max(0,Math.floor((new Date()-new Date(r.started_at))/86400000));
+        const dur = parseDurToD(r.duration);
+        pct = Math.min(100,Math.round(days/dur*100));
+        remaining = Math.max(0,dur-days) + ' dias restantes';
+      }
+      html += '<div style="background:white;border-radius:10px;padding:10px 12px;margin-bottom:8px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+          '<div style="font-size:13px;font-weight:600;color:#1a1a1a;">' + (prod?.name||'-') + '</div>' +
+          '<span style="font-size:11px;color:var(--sage);">' + pct + '%</span>' +
+        '</div>' +
+        (r.dosage||r.frequency?'<div style="font-size:11px;color:#888;margin-bottom:6px;">' + [r.dosage,r.frequency,r.duration].filter(Boolean).join(' · ') + '</div>':'') +
+        '<div style="background:#eee;border-radius:4px;height:5px;overflow:hidden;">' +
+          '<div style="width:'+pct+'%;height:5px;background:var(--sage);border-radius:4px;"></div>' +
+        '</div>' +
+        (remaining?'<div style="font-size:11px;color:var(--light);margin-top:4px;">'+remaining+'</div>':'') +
+      '</div>';
+    });
+    html += '</div>';
+  }
+
+  // HEALTH PROFILE — accordion fechado
+  const hp = pat?.health_profile;
+  if (hp && !hp.skipped) {
+    const hpId = 'hp_' + Date.now();
+    let hpContent = '';
+    if (hp.alergias?.length && !hp.alergias.includes('Nenhuma conhecida')) {
+      hpContent += '<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:700;color:#e05555;margin-bottom:6px;">⚠️ Alergias</div>';
+      hpContent += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+      hp.alergias.forEach(a => { hpContent += '<span style="background:#fff0f0;color:#e05555;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;">' + a + '</span>'; });
+      hpContent += '</div></div>';
+    }
+    if (hp.condicoes?.length) {
+      hpContent += '<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:600;color:#888;margin-bottom:6px;">Condições</div>';
+      hpContent += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+      hp.condicoes.forEach(c => { hpContent += '<span style="background:#f5f5f5;color:#444;font-size:11px;padding:3px 9px;border-radius:20px;">' + c + '</span>'; });
+      hpContent += '</div></div>';
+    }
+    if (hp.medicamentos_em_uso) {
+      hpContent += '<div style="margin-bottom:12px;"><div style="font-size:11px;font-weight:600;color:#888;margin-bottom:4px;">Medicamentos em uso</div>';
+      hpContent += '<div style="font-size:12px;color:#444;background:#f9f9f9;padding:8px 10px;border-radius:8px;">' + hp.medicamentos_em_uso + '</div></div>';
+    }
+    if (hp.objetivos?.length) {
+      hpContent += '<div><div style="font-size:11px;font-weight:600;color:#888;margin-bottom:6px;">Objetivos</div>';
+      hpContent += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+      hp.objetivos.forEach(o => { hpContent += '<span style="background:#e8f5f0;color:var(--sage);font-size:11px;padding:3px 9px;border-radius:20px;">' + o + '</span>'; });
+      hpContent += '</div></div>';
+    }
+    const alertaCount = (hp.alergias?.filter(a=>a!=='Nenhuma conhecida').length||0);
+    html += '<div style="background:white;border-radius:14px;margin-bottom:10px;border:1px solid #f0f0f0;overflow:hidden;">';
+    html += '<div onclick="toggleAccordion(\'' + hpId + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;user-select:none;">';
+    html += '<div style="display:flex;align-items:center;gap:10px;">';
+    html += '<div style="width:32px;height:32px;border-radius:10px;background:#e8f5f0;display:flex;align-items:center;justify-content:center;font-size:16px;">🩺</div>';
+    html += '<div><div style="font-size:13px;font-weight:700;color:#0f1f1a;">Perfil de saúde</div>';
+    html += '<div style="font-size:11px;color:#999;margin-top:1px;">' + (alertaCount ? '<span style="color:#e05555;font-weight:600;">⚠️ ' + alertaCount + ' alergia' + (alertaCount>1?'s':'') + ' · </span>' : '') + (hp.condicoes?.length||0) + ' condições · ' + (hp.objetivos?.length||0) + ' objetivos</div>';
+    html += '</div></div>';
+    html += '<span id="icon_' + hpId + '" style="color:#bbb;font-size:18px;transition:transform .2s;">›</span>';
+    html += '</div>';
+    html += '<div id="' + hpId + '" style="display:none;padding:0 16px 16px;border-top:1px solid #f0f0f0;">' + hpContent + '</div>';
+    html += '</div>';
+  }
+
+  // EXAMES DO PACIENTE
+  const { data: exames } = await sb.from('exames').select('*').in('patient_id', todosIds).order('created_at', { ascending: false }).limit(10);
+  if (exames && exames.length > 0) {
+    const exId = 'ex_' + Date.now();
+    let exContent = '';
+    exContent += '<div style="margin-bottom:20px;">';
+    exContent += '<div style="font-size:11px;font-weight:700;color:var(--sage);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">🔬 Exames recentes</div>';
+    exames.forEach(exame => {
+      const itens = exame.itens || [];
+      const alterados = itens.filter(it => {
+        const v = parseFloat(it.resultado), min = parseFloat(it.refMin), max = parseFloat(it.refMax);
+        return !isNaN(v) && ((it.refMin && v < min) || (it.refMax && v > max));
+      });
+      exContent += '<div style="background:#fafafa;border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid #f0f0f0;">';
+      exContent += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">';
+      exContent += '<div><div style="font-size:13px;font-weight:700;color:#0f1f1a;">' + exame.nome + '</div>';
+      exContent += '<div style="font-size:11px;color:#999;margin-top:2px;">' + new Date(exame.data||exame.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}) + (exame.laboratorio ? ' · ' + exame.laboratorio : '') + '</div></div>';
+      if (alterados.length) exContent += '<span style="background:#fff0f0;color:#e05555;font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;">' + alterados.length + ' ALTERADO' + (alterados.length>1?'S':'') + '</span>';
+      exContent += '</div>';
+      if (itens.length > 0) {
+        exContent += '<div style="border-radius:8px;overflow:hidden;border:1px solid #f0f0f0;">';
+        itens.forEach((item, idx) => {
+          const v = parseFloat(item.resultado), min = parseFloat(item.refMin), max = parseFloat(item.refMax);
+          const baixo = !isNaN(v) && item.refMin && v < min;
+          const alto = !isNaN(v) && item.refMax && v > max;
+          const cor = baixo ? '#3b82f6' : alto ? '#e05555' : 'var(--sage)';
+          const bg = baixo ? '#f0f7ff' : alto ? '#fff5f5' : (idx%2===0?'white':'#fafafa');
+          exContent += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:' + bg + ';border-bottom:' + (idx<itens.length-1?'1px solid #f0f0f0':'none') + ';">';
+          exContent += '<div><div style="font-size:12px;font-weight:500;color:#333;">' + item.nome + '</div>';
+          if (item.refMin || item.refMax) exContent += '<div style="font-size:10px;color:#bbb;">Ref: ' + (item.refMin||'—') + ' – ' + (item.refMax||'—') + (item.unidade?' '+item.unidade:'') + '</div>';
+          exContent += '</div>';
+          exContent += '<div style="display:flex;align-items:center;gap:6px;">';
+          exContent += '<div style="text-align:right;"><div style="font-size:13px;font-weight:700;color:' + cor + ';">' + (item.resultado||'—') + '</div>';
+          if (item.unidade) exContent += '<div style="font-size:10px;color:#bbb;">' + item.unidade + '</div>';
+          exContent += '</div>';
+          if (baixo||alto) exContent += '<span style="background:' + cor + ';color:white;font-size:8px;font-weight:700;padding:2px 5px;border-radius:4px;">' + (baixo?'↓':'↑') + '</span>';
+          exContent += '</div></div>';
+        });
+        exContent += '</div>';
+      }
+      exContent += '</div>';
+    });
+    exContent += '</div>';
+    html += '<div style="background:white;border-radius:14px;margin-bottom:10px;border:1px solid #f0f0f0;overflow:hidden;">';
+    html += '<div onclick="toggleAccordion(\'' + exId + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;user-select:none;">';
+    html += '<div style="display:flex;align-items:center;gap:10px;">';
+    html += '<div style="width:32px;height:32px;border-radius:10px;background:#e8f5f0;display:flex;align-items:center;justify-content:center;font-size:16px;">🔬</div>';
+    html += '<div><div style="font-size:13px;font-weight:700;color:#0f1f1a;">Exames recentes</div>';
+    const totalAlterados = exames.reduce((acc,ex)=>acc+(ex.itens||[]).filter(it=>{const v=parseFloat(it.resultado),mn=parseFloat(it.refMin),mx=parseFloat(it.refMax);return !isNaN(v)&&((it.refMin&&v<mn)||(it.refMax&&v>mx));}).length,0);
+    html += '<div style="font-size:11px;color:#999;margin-top:1px;">' + exames.length + ' exame' + (exames.length>1?'s':'') + (totalAlterados?' · <span style=\"color:#e05555;font-weight:600;\">'+totalAlterados+' valor'+(totalAlterados>1?'es':'')+' alterado'+(totalAlterados>1?'s':'')+'</span>':'') + '</div>';
+    html += '</div></div>';
+    html += '<span id="icon_' + exId + '" style="color:#bbb;font-size:18px;transition:transform .2s;">›</span>';
+    html += '</div>';
+    html += '<div id="' + exId + '" style="display:none;padding:0 16px 16px;border-top:1px solid #f0f0f0;">' + exContent + '</div>';
+    html += '</div>';
+  }
+
+  // BOTÕES DE MENSAGEM PARA O PACIENTE
+  if (patWa) {
+    const firstName = patName.split(' ')[0];
+    const msgs = [
+      { label: '💊 Lembrete de compra', text: 'Olá ' + firstName + ', tudo bem? Passando para lembrar que pode estar na hora de renovar seu tratamento. Qualquer dúvida, estou à disposição!' },
+      { label: '🩺 Como está se sentindo?', text: 'Olá ' + firstName + '! Como você está se sentindo com o tratamento? Tem alguma dúvida ou algo que queira me contar?' },
+      { label: '📅 Agendar retorno', text: 'Olá ' + firstName + ', vamos agendar seu retorno? Fico à disposição para marcar uma consulta.' },
+    ];
+    html += '<div style="font-size:11px;font-weight:700;color:var(--sage);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Enviar mensagem</div>';
+    msgs.forEach(m => {
+      const url = 'https://wa.me/55' + patWa + '?text=' + encodeURIComponent(m.text);
+      html += '<a href="' + url + '" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;background:white;border:1.5px solid #e5e7eb;border-radius:10px;padding:10px 14px;margin-bottom:8px;text-decoration:none;color:#1a1a1a;">' +
+        '<span style="font-size:13px;font-weight:500;">' + m.label + '</span>' +
+        '<span style="color:#25d366;font-size:13px;">WhatsApp →</span>' +
+      '</a>';
+    });
+    html += '</div>';
+  }
+
+  // RECOMENDAÇÕES — agrupar por minuto (mesma receita)
+  html += '<div style="font-size:12px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Histórico completo</div>';
+  if (!recs || recs.length === 0) {
+    html += '<div style="color:var(--light);font-size:13px;margin-bottom:24px;">Nenhuma recomendação encontrada.</div>';
+  } else {
+    // Agrupar por minuto
+    const groups = {};
+    recs.forEach(r => {
+      const key = new Date(r.created_at).toISOString().slice(0,16);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(r);
+    });
+    Object.entries(groups).forEach(([key, items]) => {
+      const r = items[0];
+      const date = new Date(r.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
+      const statusColor = r.status === 'active' ? '#2d7a47' : r.status === 'completed' ? '#888' : '#c17f3e';
+      const statusLabel = r.status === 'active' ? 'Ativo' : r.status === 'completed' ? 'Concluído' : 'Pendente';
+      html += `<div style="background:#f8faf9;border:1px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:12px;color:#666;">${date}</div>
+          <div style="font-size:11px;font-weight:600;color:${statusColor};background:${statusColor}18;padding:3px 10px;border-radius:20px;">${statusLabel}</div>
+        </div>`;
+      if (r.return_date) {
+        html += `<div style="font-size:11px;color:#888;margin-bottom:8px;">📅 Retorno: ${new Date(r.return_date).toLocaleDateString('pt-BR')}</div>`;
+      }
+      items.forEach(item => {
+        const prod = item.products;
+        html += `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-top:1px solid #eee;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--sage);margin-top:6px;flex-shrink:0;"></div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#1a1a1a;">${prod?.name || '-'}</div>
+            <div style="font-size:11px;color:#888;">${prod?.brand || ''}${item.dosage ? ' · ' + item.dosage : ''}${item.frequency ? ' · ' + item.frequency : ''}${item.duration ? ' · ' + item.duration : ''}</div>
+            ${item.instructions ? '<div style="font-size:11px;color:#666;margin-top:2px;">📝 ' + item.instructions + '</div>' : ''}
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    });
+  }
+
+  // PLANOS ALIMENTARES
+  html += '<div style="font-size:12px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:0.5px;margin:24px 0 12px;">Planos Alimentares</div>';
+  if (!plans || plans.length === 0) {
+    html += '<div style="color:var(--light);font-size:13px;">Nenhum plano alimentar encontrado.</div>';
+  } else {
+    plans.forEach(plan => {
+      const date = new Date(plan.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
+      const items = plan.meal_plan_items || [];
+      html += `<div style="background:#f8faf9;border:1px solid #e0e0e0;border-radius:12px;padding:14px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-size:14px;font-weight:600;color:#1a1a1a;">${plan.title}</div>
+          <div style="font-size:12px;color:#999;">${date}</div>
+        </div>
+        ${plan.notes ? '<div style="font-size:12px;color:#666;margin-bottom:10px;">📝 ' + plan.notes + '</div>' : ''}`;
+      if (items.length > 0) {
+        const days = [...new Set(items.map(i => i.day_of_week))].sort();
+        days.forEach(day => {
+          const dayItems = items.filter(i => i.day_of_week === day);
+          const dayNames = ['','Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+          html += `<div style="font-size:11px;font-weight:700;color:var(--sage);margin:8px 0 4px;">${dayNames[day] || 'Dia ' + day}</div>`;
+          dayItems.forEach(di => {
+            html += `<div style="font-size:12px;color:#444;padding:2px 0 2px 10px;border-left:2px solid var(--sage-pale);">${di.meal_type ? '<span style="color:#888">' + di.meal_type + ':</span> ' : ''}${di.description || ''}</div>`;
+          });
+        });
+      }
+      html += '</div>';
+    });
+  }
+
+  el.innerHTML = html;
+
+  // Auto-abre a seção correta baseada no modo
+  if (modo === 'saude') {
+    setTimeout(() => {
+      const hpEl = el.querySelector('[id^="hp_"]');
+      if (hpEl && hpEl.style.display === 'none') hpEl.click ? hpEl.parentElement.click() : (hpEl.style.display = 'block');
+    }, 100);
+  } else if (modo === 'exames') {
+    setTimeout(() => {
+      const exEl = el.querySelector('[id^="ex_"]');
+      if (exEl && exEl.style.display === 'none') exEl.parentElement.click();
+    }, 100);
+  }
+}
+
+function openPatientNotes(patId){
+  const p=allPatients.find(p=>p.id===patId);if(!p)return;
+  notesPatientId=patId;document.getElementById('notesPatientName').textContent=p.name;
+  document.getElementById('notesTextarea').value=p.notes||'';openModal('modalPatientNotes');
+}
+async function savePatientNotes(){
+  if(!notesPatientId)return;
+  const notes=document.getElementById('notesTextarea').value.trim();
+  const{error}=await sb.from('patients').update({notes}).eq('id',notesPatientId);
+  if(error)return showToast('Erro ao salvar anotações','error');
+  const p=allPatients.find(p=>p.id===notesPatientId);if(p)p.notes=notes;
+  closeModal('modalPatientNotes');renderPatients();showToast('Anotações salvas!','success');
+}
+
+function loadProfile(){
+  if(!currentDoctor)return;
+  const initials = currentDoctor.name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+  const av = document.getElementById('profileAvatar');
+  const nm = document.getElementById('profileNameDisplay');
+  const sp = document.getElementById('profileSpecDisplay');
+  const cr = document.getElementById('profileCrmDisplay');
+  const st = document.getElementById('profileStatTotal');
+  const sp2 = document.getElementById('profileStatPats');
+  const pt = document.getElementById('profileStatPoints');
+  if(av) av.textContent = initials;
+  if(nm) nm.textContent = currentDoctor.name||'';
+  if(sp) sp.textContent = currentDoctor.specialty||'';
+  if(cr) cr.textContent = currentDoctor.crm ? 'CRM ' + currentDoctor.crm : '';
+  const total = allRecommendations.length||0;
+  const pats = allPatients.length||0;
+  const ativos = allRecommendations.filter(r=>r.status==='active').length||0;
+  if(st) st.textContent = total;
+  if(sp2) sp2.textContent = pats;
+  if(pt) pt.textContent = (ativos*10).toLocaleString('pt-BR');
+}
+
+async function saveProfile(){
+  const name=document.getElementById('profileName').value.trim();
+  const crm=document.getElementById('profileCrm').value.trim();
+  const specialty=document.getElementById('profileSpecialty').value.trim();
+  const whatsapp=document.getElementById('profileWhatsapp').value.replace(/\D/g,'');
+  if(!name)return showToast('Preencha o nome','error');
+  const{error}=await sb.from('doctors').update({name,crm,specialty,whatsapp:whatsapp||null}).eq('id',currentDoctor.id);
+  if(error)return showToast('Erro ao salvar','error');
+  currentDoctor={...currentDoctor,name,crm,specialty,whatsapp};
+  document.getElementById('userName').textContent=name;
+  document.getElementById('userInitials').textContent=name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+  const specialtyEl=document.getElementById('userSpecialty');
+  if(specialtyEl)specialtyEl.textContent=specialty||'Médico';
+  document.getElementById('doctorFirstName').textContent=name.split(' ')[0];
+  mostrarNavMealPlan();
+  showToast('Perfil atualizado!','success');
+}
+
+async function savePassword(){
+  const newPass=document.getElementById('profileNewPassword').value;
+  const confirmPass=document.getElementById('profileConfirmPassword').value;
+  if(!newPass||newPass.length<6)return showToast('A senha deve ter pelo menos 6 caracteres','error');
+  if(newPass!==confirmPass)return showToast('As senhas não coincidem','error');
+  const{error}=await sb.auth.updateUser({password:newPass});
+  if(error)return showToast('Erro ao alterar senha','error');
+  document.getElementById('profileNewPassword').value='';
+  document.getElementById('profileConfirmPassword').value='';
+  showToast('Senha alterada com sucesso!','success');
+}
+
+async function init(){
+  renderCompComponentes();
+  const{data:{session}}=await sb.auth.getSession();
+  if(session){currentUser=session.user;await loadDoctorProfile();showApp();}
+}
+init();
+
+// PLANO ALIMENTAR
+const DIAS_SEMANA=['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+const REFEICOES=[
+  {key:'cafe',label:'Café da manhã',icon:'☀️'},{key:'lanche_manha',label:'Lanche da manhã',icon:'🍎'},
+  {key:'almoco',label:'Almoço',icon:'🍽️'},{key:'lanche_tarde',label:'Lanche da tarde',icon:'🥪'},
+  {key:'jantar',label:'Jantar',icon:'🌙'},{key:'ceia',label:'Ceia',icon:'🌛'},
+];
+let mpDiaAtivo=0,mpPacienteSelecionado=null,mpRefeicoes={};
+
+function isNutricionista(){if(!currentDoctor)return false;const s=(currentDoctor.specialty||'').toLowerCase();return s.includes('nutri')||s.includes('nutrolog');}
+function mostrarNavMealPlan(){const nav=document.getElementById('nav-meal-plan');if(nav)nav.style.display=isNutricionista()?'flex':'none';}
+
+function abrirModalPlano(){
+  mpDiaAtivo=0;mpPacienteSelecionado=null;mpRefeicoes={};
+  document.getElementById('mp-titulo').value='';document.getElementById('mp-notas').value='';
+  document.getElementById('mp-paciente-busca').value='';
+  document.getElementById('mp-paciente-sugestoes').style.display='none';
+  document.getElementById('mp-paciente-selecionado').style.display='none';
+  document.querySelectorAll('.mp-dia-btn').forEach((b,i)=>b.classList.toggle('mp-dia-ativo',i===0));
+  renderRefeicoesDia(0);document.getElementById('modal-meal-plan').style.display='block';
+}
+function fecharModalPlano(){document.getElementById('modal-meal-plan').style.display='none';}
+
+function setDiaAtivo(dia,btn){
+  salvarEstadoDia(mpDiaAtivo);mpDiaAtivo=dia;
+  document.querySelectorAll('.mp-dia-btn').forEach(b=>b.classList.remove('mp-dia-ativo'));
+  btn.classList.add('mp-dia-ativo');renderRefeicoesDia(dia);
+}
+
+function salvarEstadoDia(dia){
+  if(!mpRefeicoes[dia])mpRefeicoes[dia]={};
+  REFEICOES.forEach(r=>{
+    const alimentos=document.getElementById('mp-'+dia+'-'+r.key+'-alimentos');
+    const quantidades=document.getElementById('mp-'+dia+'-'+r.key+'-quantidades');
+    const suplementos=document.getElementById('mp-'+dia+'-'+r.key+'-suplementos');
+    if(alimentos||quantidades||suplementos){mpRefeicoes[dia][r.key]={alimentos:alimentos?.value||'',quantidades:quantidades?.value||'',suplementos:suplementos?.value||''};}
+  });
+}
+
+function renderRefeicoesDia(dia){
+  const saved=mpRefeicoes[dia]||{};
+  const container=document.getElementById('mp-refeicoes');
+  container.innerHTML=REFEICOES.map(r=>{
+    const s=saved[r.key]||{};
+    return `<div class="mp-refeicao-card">
+      <div class="mp-refeicao-titulo">${r.icon} ${r.label}</div>
+      <div class="mp-field-row">
+        <div><label>Alimentos</label><textarea id="mp-${dia}-${r.key}-alimentos" placeholder="Ex: Frango grelhado, arroz integral...">${s.alimentos||''}</textarea></div>
+        <div><label>Quantidades</label><textarea id="mp-${dia}-${r.key}-quantidades" placeholder="Ex: 150g frango, 3 col. arroz...">${s.quantidades||''}</textarea></div>
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#1D9E75;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px;">💊 Suplementos / Medicamentos</label>
+        <textarea id="mp-${dia}-${r.key}-suplementos" style="width:100%;padding:9px 12px;border:1.5px solid #b8e0cf;border-radius:8px;font-size:13px;font-family:inherit;resize:none;height:52px;box-sizing:border-box;background:#f0f9f5;" placeholder="Ex: Whey protein 30g, Creatina 5g...">${s.suplementos||''}</textarea>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function buscarPacientePlano(q){
+  if(!q||q.length<2){document.getElementById('mp-paciente-sugestoes').style.display='none';return;}
+  const{data}=await sb.from('patients').select('id,name,email').eq('doctor_id',currentDoctor.id).ilike('name','%'+q+'%').limit(5);
+  const div=document.getElementById('mp-paciente-sugestoes');
+  if(!data||data.length===0){div.style.display='none';return;}
+  div.innerHTML=data.map(p=>`<div onclick="selecionarPacientePlano('${p.id}','${p.name}')" style="padding:12px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:14px;" onmouseover="this.style.background='#f5f5f2'" onmouseout="this.style.background='white'"><div style="font-weight:600;color:#0f1f1a;">${p.name}</div>${p.email?'<div style="font-size:12px;color:#999;">'+p.email+'</div>':''}</div>`).join('');
+  div.style.display='block';
+}
+
+function selecionarPacientePlano(id,nome){
+  mpPacienteSelecionado={id,nome};document.getElementById('mp-paciente-busca').value='';
+  document.getElementById('mp-paciente-sugestoes').style.display='none';
+  const sel=document.getElementById('mp-paciente-selecionado');sel.style.display='flex';
+  document.getElementById('mp-paciente-nome').textContent=nome;
+}
+function limparPacientePlano(){mpPacienteSelecionado=null;document.getElementById('mp-paciente-selecionado').style.display='none';document.getElementById('mp-paciente-busca').value='';}
+
+async function salvarPlanoAlimentar(){
+  if(!mpPacienteSelecionado){alert('Selecione um paciente');return;}
+  const titulo=document.getElementById('mp-titulo').value.trim();
+  if(!titulo){alert('Informe o título do plano');return;}
+  salvarEstadoDia(mpDiaAtivo);
+  const notas=document.getElementById('mp-notas').value.trim();
+  const{data:plano,error}=await sb.from('meal_plans').insert([{doctor_id:currentDoctor.id,patient_id:mpPacienteSelecionado.id,title:titulo,notes:notas||null}]).select().single();
+  if(error){alert('Erro ao salvar: '+error.message);return;}
+  const itens=[];
+  for(let dia=0;dia<7;dia++){
+    const diaData=mpRefeicoes[dia]||{};
+    REFEICOES.forEach(r=>{const item=diaData[r.key]||{};if(item.alimentos||item.suplementos){itens.push({meal_plan_id:plano.id,day_of_week:dia,meal_time:r.key,foods:item.alimentos||null,quantities:item.quantidades||null,supplements:item.suplementos||null});}});
+  }
+  if(itens.length>0)await sb.from('meal_plan_items').insert(itens);
+  fecharModalPlano();loadMealPlans();alert('Plano alimentar salvo com sucesso!');
+}
+
+let allMealPlans=[];
+async function loadMealPlans(){
+  if(!currentDoctor)return;
+  const{data}=await sb.from('meal_plans').select('*, patients(name)').eq('doctor_id',currentDoctor.id).order('created_at',{ascending:false});
+  allMealPlans=data||[];
+  renderMealPlans(allMealPlans);
+}
+function filtrarPlanos(q){
+  if(!q){renderMealPlans(allMealPlans);return;}
+  const qn=removeAcentos(q);
+  renderMealPlans(allMealPlans.filter(p=>removeAcentos(p.patients?.name||'').includes(qn)||removeAcentos(p.title||'').includes(qn)));
+}
+function renderMealPlans(data){
+  const el=document.getElementById('meal-plan-list');
+  if(!data||data.length===0){el.innerHTML=`<div class="empty"><div class="empty-title">Nenhum plano criado ainda</div><div class="empty-sub">Crie planos alimentares semanais para seus pacientes</div><button class="btn btn-sage" onclick="abrirModalPlano()">+ Novo Plano Alimentar</button></div>`;return;}
+  el.innerHTML=data.map(p=>`<div class="meal-plan-card"><div class="meal-plan-card-header" onclick="verPlanoAlimentar('${p.id}')" style="cursor:pointer;"><div><div class="meal-plan-card-title">${p.title}</div><div class="meal-plan-card-paciente">👤 ${p.patients?.name||'Paciente'}</div></div><div style="display:flex;align-items:center;gap:10px;"><div style="font-size:12px;color:#999;">${new Date(p.created_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</div><button onclick="event.stopPropagation();deletarPlano('${p.id}')" style="background:var(--red-light);color:var(--red);border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;">Apagar</button></div></div>${p.notes?'<div style="font-size:13px;color:#666;margin-top:6px;">'+p.notes+'</div>':''}</div>`).join('');
+}
+async function deletarPlano(id){
+  if(!confirm('Apagar este plano alimentar? Esta ação não pode ser desfeita.'))return;
+  await sb.from('meal_plan_items').delete().eq('meal_plan_id',id);
+  await sb.from('meal_plans').delete().eq('id',id);
+  allMealPlans=allMealPlans.filter(p=>p.id!==id);
+  renderMealPlans(allMealPlans);
+  showToast('Plano apagado!','success');
+}
+
+async function verPlanoAlimentar(id){
+  const{data:plano}=await sb.from('meal_plans').select('*, patients(name), meal_plan_items(*)').eq('id',id).single();
+  if(!plano)return;
+  const diasComItems={};
+  (plano.meal_plan_items||[]).forEach(item=>{if(!diasComItems[item.day_of_week])diasComItems[item.day_of_week]={};diasComItems[item.day_of_week][item.meal_time]=item;});
+  let html=`<div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;"><div style="background:white;max-width:760px;margin:40px auto;border-radius:20px;overflow:hidden;"><div style="background:var(--sage-dark);padding:24px 28px;display:flex;justify-content:space-between;align-items:center;"><div><div style="color:white;font-size:18px;font-weight:700;">${plano.title}</div><div style="color:rgba(255,255,255,0.6);font-size:13px;margin-top:2px;">👤 ${plano.patients?.name}</div></div><button onclick="this.closest('[style*=fixed]').remove()" style="background:rgba(255,255,255,0.1);border:none;color:white;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;">×</button></div><div style="padding:28px;">`;
+  DIAS_SEMANA.forEach((dia,idx)=>{
+    const items=diasComItems[idx];if(!items)return;
+    html+=`<div style="margin-bottom:24px;"><div style="font-size:15px;font-weight:700;color:#0f1f1a;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #f0f0f0;">${dia}</div>`;
+    REFEICOES.forEach(r=>{const item=items[r.key];if(!item||(!item.foods&&!item.supplements))return;html+=`<div style="background:#f9fafb;border-radius:10px;padding:12px 14px;margin-bottom:8px;"><div style="font-size:12px;font-weight:700;color:#666;margin-bottom:6px;">${r.icon} ${r.label.toUpperCase()}</div>${item.foods?'<div style="font-size:14px;color:#0f1f1a;">'+item.foods+'</div>':''}${item.quantities?'<div style="font-size:12px;color:#888;margin-top:3px;">'+item.quantities+'</div>':''}${item.supplements?'<div style="font-size:13px;color:#1D9E75;margin-top:6px;padding:6px 10px;background:#e8f5f0;border-radius:6px;">💊 '+item.supplements+'</div>':''}</div>`;});
+    html+='</div>';
+  });
+  if(plano.notes)html+=`<div style="background:#fff8ed;border-radius:10px;padding:14px;margin-top:8px;"><div style="font-size:12px;font-weight:700;color:#f5a623;margin-bottom:4px;">OBSERVAÇÕES</div><div style="font-size:14px;color:#7a5c2e;">${plano.notes}</div></div>`;
+  html+=`</div></div></div>`;
+  const div=document.createElement('div');div.innerHTML=html;document.body.appendChild(div.firstChild);
+}
+</script>
+
+<!-- MODAL PLANO ALIMENTAR -->
+<div id="modal-meal-plan" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
+  <div style="background:white;max-width:760px;margin:40px auto;border-radius:20px;overflow:hidden;">
+    <div style="background:var(--sage-dark);padding:24px 28px;display:flex;justify-content:space-between;align-items:center;">
+      <div><div style="color:white;font-size:18px;font-weight:700;">Novo Plano Alimentar</div><div style="color:rgba(255,255,255,0.6);font-size:13px;margin-top:2px;">Plano semanal personalizado</div></div>
+      <button onclick="fecharModalPlano()" style="background:rgba(255,255,255,0.1);border:none;color:white;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;">×</button>
+    </div>
+    <div style="padding:28px;">
+      <div style="margin-bottom:20px;">
+        <label style="font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.5px;">Paciente</label>
+        <div style="position:relative;margin-top:6px;">
+          <input id="mp-paciente-busca" type="text" placeholder="Buscar paciente..." style="width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:15px;box-sizing:border-box;" oninput="buscarPacientePlano(this.value)">
+          <div id="mp-paciente-sugestoes" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1);z-index:10;max-height:200px;overflow-y:auto;"></div>
+        </div>
+        <div id="mp-paciente-selecionado" style="display:none;background:#f0f9f5;border-radius:10px;padding:12px 14px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span id="mp-paciente-nome" style="font-weight:600;color:#0f1f1a;"></span>
+          <button onclick="limparPacientePlano()" style="background:none;border:none;color:#999;cursor:pointer;font-size:18px;">×</button>
+        </div>
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.5px;">Título do plano</label>
+        <input id="mp-titulo" type="text" placeholder="Ex: Plano emagrecimento - Janeiro" style="width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:15px;margin-top:6px;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.5px;">Plano semanal</label>
+        <div style="font-size:12px;color:#999;margin-top:2px;">Monte as refeições de cada dia</div>
+      </div>
+      <div style="display:flex;gap:4px;background:#f5f5f2;border-radius:12px;padding:4px;margin-bottom:16px;overflow-x:auto;">
+        <button class="mp-dia-btn mp-dia-ativo" onclick="setDiaAtivo(0,this)">Seg</button>
+        <button class="mp-dia-btn" onclick="setDiaAtivo(1,this)">Ter</button>
+        <button class="mp-dia-btn" onclick="setDiaAtivo(2,this)">Qua</button>
+        <button class="mp-dia-btn" onclick="setDiaAtivo(3,this)">Qui</button>
+        <button class="mp-dia-btn" onclick="setDiaAtivo(4,this)">Sex</button>
+        <button class="mp-dia-btn" onclick="setDiaAtivo(5,this)">Sáb</button>
+        <button class="mp-dia-btn" onclick="setDiaAtivo(6,this)">Dom</button>
+      </div>
+      <div id="mp-refeicoes"></div>
+      <div style="margin-top:20px;margin-bottom:24px;">
+        <label style="font-size:12px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:0.5px;">Observações gerais</label>
+        <textarea id="mp-notas" placeholder="Orientações gerais, restrições alimentares, metas..." style="width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;margin-top:6px;box-sizing:border-box;height:80px;resize:none;font-family:inherit;"></textarea>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button onclick="fecharModalPlano()" style="flex:1;padding:14px;border:1.5px solid #e5e7eb;border-radius:12px;background:white;color:#666;font-weight:600;cursor:pointer;">Cancelar</button>
+        <button onclick="salvarPlanoAlimentar()" style="flex:2;padding:14px;border:none;border-radius:12px;background:var(--sage);color:white;font-weight:700;cursor:pointer;font-size:15px;">Salvar Plano</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.mp-dia-btn { flex:1;min-width:44px;padding:8px 6px;border-radius:9px;font-size:12px;font-weight:600;border:none;cursor:pointer;transition:all 0.18s;background:none;color:#666;white-space:nowrap; }
+.mp-dia-ativo { background:white;color:var(--sage-dark);box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+.mp-refeicao-card { background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:12px; }
+.mp-refeicao-titulo { font-size:13px;font-weight:700;color:#0f1f1a;margin-bottom:12px;display:flex;align-items:center;gap:6px; }
+.mp-field-row { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px; }
+.mp-field-row label { font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:4px; }
+.mp-field-row textarea { width:100%;padding:9px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit;resize:none;height:72px;box-sizing:border-box; }
+.mp-field-row textarea:focus { outline:none;border-color:var(--sage); }
+</style>
+</body>
+</html>
