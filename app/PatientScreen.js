@@ -936,7 +936,10 @@ function ProdutoCard({ rec, showBuyBtn, onUpdateStatus, onLembrete, onBula, pati
   }
 
   function buildBrandSearchUrl(siteUrl, productName, brandName) {
-    if (siteUrl && /^https?:\/\/.+\?/.test(siteUrl)) return siteUrl;
+    if (siteUrl && /=\s*$/.test(siteUrl) && /^https?:\/\//.test(siteUrl)) {
+      return siteUrl + encodeURIComponent(productName);
+    }
+    if (siteUrl && /^https?:\/\/.+\?.+=.+/.test(siteUrl)) return siteUrl;
     const q = [productName, brandName].filter(Boolean).join(' ');
     return 'https://www.google.com/search?q=' + encodeURIComponent(q);
   }

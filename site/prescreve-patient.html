@@ -1187,7 +1187,13 @@ function openSafe(url) {
 }
 
 function buildBrandSearchUrl(siteUrl, productName, brandName) {
-  if (siteUrl && /^https?:\/\/.+\?/.test(siteUrl)) return siteUrl;
+  // Template: URL termina com = (ex: https://nutrify.com.br/busca?q=) → appenda produto
+  if (siteUrl && /=\s*$/.test(siteUrl) && /^https?:\/\//.test(siteUrl)) {
+    return siteUrl + encodeURIComponent(productName);
+  }
+  // URL já tem busca completa (ex: ?q=creatina) → usa direto
+  if (siteUrl && /^https?:\/\/.+\?.+=.+/.test(siteUrl)) return siteUrl;
+  // Fallback: Google search com produto + marca
   const q = [productName, brandName].filter(Boolean).join(' ');
   return 'https://www.google.com/search?q=' + encodeURIComponent(q);
 }
