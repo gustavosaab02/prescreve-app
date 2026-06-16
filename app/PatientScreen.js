@@ -935,15 +935,10 @@ function ProdutoCard({ rec, showBuyBtn, onUpdateStatus, onLembrete, onBula, pati
     Linking.openURL(url).catch(() => Alert.alert('Não foi possível abrir o link'));
   }
 
-  function buildBrandSearchUrl(siteUrl, productName) {
-    if (!siteUrl) return 'https://www.google.com/search?q=' + encodeURIComponent(productName);
-    try {
-      const u = new URL(siteUrl);
-      if (u.search) return siteUrl;
-      return 'https://www.google.com/search?q=' + encodeURIComponent('site:' + u.hostname + ' ' + productName);
-    } catch (e) {
-      return 'https://www.google.com/search?q=' + encodeURIComponent(productName + ' ' + siteUrl);
-    }
+  function buildBrandSearchUrl(siteUrl, productName, brandName) {
+    if (siteUrl && /^https?:\/\/.+\?/.test(siteUrl)) return siteUrl;
+    const q = [productName, brandName].filter(Boolean).join(' ');
+    return 'https://www.google.com/search?q=' + encodeURIComponent(q);
   }
 
   function statusInfo() {
@@ -1086,7 +1081,7 @@ function ProdutoCard({ rec, showBuyBtn, onUpdateStatus, onLembrete, onBula, pati
                 <>
                   <Text style={{ fontSize: 11, fontWeight: '700', color: '#1D9E75', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Marcas sugeridas pelo seu médico</Text>
                   {rec.marcas_sugeridas.map((m, i) => (
-                    <TouchableOpacity key={i} onPress={() => Linking.openURL(buildBrandSearchUrl(m.site_url, p?.name || m.nome)).catch(() => {})}
+                    <TouchableOpacity key={i} onPress={() => Linking.openURL(buildBrandSearchUrl(m.site_url, p?.name, m.nome)).catch(() => {})}
                       style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'white', borderRadius: 12, padding: 12, marginBottom: 8, borderWidth: 1.5, borderColor: '#e8f5f0' }}
                     >
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
