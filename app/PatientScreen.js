@@ -939,9 +939,11 @@ function ProdutoCard({ rec, showBuyBtn, onUpdateStatus, onLembrete, onBula, pati
     if (!siteUrl) return 'https://www.google.com/search?q=' + encodeURIComponent(productName);
     try {
       const u = new URL(siteUrl);
-      if (u.search || u.pathname.length > 1) return siteUrl;
+      if (u.search) return siteUrl;
       return 'https://www.google.com/search?q=' + encodeURIComponent('site:' + u.hostname + ' ' + productName);
-    } catch (e) { return siteUrl; }
+    } catch (e) {
+      return 'https://www.google.com/search?q=' + encodeURIComponent(productName + ' ' + siteUrl);
+    }
   }
 
   function statusInfo() {
