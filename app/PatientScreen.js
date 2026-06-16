@@ -936,8 +936,8 @@ function ProdutoCard({ rec, showBuyBtn, onUpdateStatus, onLembrete, onBula, pati
   }
 
   const MARCAS_BUSCA = {
-    'nutrify.com.br':     q => 'https://www.nutrify.com.br/' + encodeURIComponent(q) + '?map=ft',
-    'maxtitanium.com.br': q => 'https://www.maxtitanium.com.br/catalogsearch/result/?q=' + encodeURIComponent(q),
+    'nutrify.com.br':     q => 'https://www.nutrify.com.br/' + encodeURIComponent(q) + '?_q=' + encodeURIComponent(q) + '&map=ft',
+    'maxtitanium.com.br': q => 'https://www.maxtitanium.com.br/' + encodeURIComponent(q) + '?_q=' + encodeURIComponent(q) + '&map=ft',
     'darkness.com.br':    q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q),
   };
 
