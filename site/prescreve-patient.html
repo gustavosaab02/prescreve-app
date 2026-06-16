@@ -1186,23 +1186,19 @@ function openSafe(url) {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-const MARCAS_BUSCA = {
-  'nutrify.com.br':     q => 'https://www.nutrify.com.br/' + encodeURIComponent(q) + '?_q=' + encodeURIComponent(q) + '&map=ft',
-  'maxtitanium.com.br': q => 'https://www.maxtitanium.com.br/' + encodeURIComponent(q) + '?_q=' + encodeURIComponent(q) + '&map=ft',
-  'darkness.com.br':    q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q),
-};
+const MARCAS_BUSCA = [
+  { chaves: ['nutrify'],      fn: q => 'https://www.nutrify.com.br?_q=' + encodeURIComponent(q) + '&map=ft' },
+  { chaves: ['maxtitanium', 'max titanium', 'max-titanium'], fn: q => 'https://www.maxtitanium.com.br?_q=' + encodeURIComponent(q) + '&map=ft' },
+  { chaves: ['darkness'],     fn: q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q) },
+];
 
 function buildBrandSearchUrl(siteUrl, productName, brandName) {
-  // URL template terminando com = → appenda produto direto
   if (siteUrl && /^https?:\/\/.+=\s*$/.test(siteUrl))
     return siteUrl + encodeURIComponent(productName);
-  // URL já tem busca com valor (ex: ?q=creatina) → usa direto
   if (siteUrl && /^https?:\/\/.+\?.+=.+/.test(siteUrl)) return siteUrl;
-  // Busca pelo nome da marca (independente da site_url)
   const nomeNorm = (brandName || '').toLowerCase();
-  const marcaKey = Object.keys(MARCAS_BUSCA).find(k => nomeNorm.includes(k.split('.')[0]));
-  if (marcaKey) return MARCAS_BUSCA[marcaKey](productName);
-  // Fallback: Google com produto + marca
+  const marca = MARCAS_BUSCA.find(m => m.chaves.some(c => nomeNorm.includes(c)));
+  if (marca) return marca.fn(productName);
   const q = [productName, brandName].filter(Boolean).join(' ');
   return 'https://www.google.com/search?q=' + encodeURIComponent(q);
 }

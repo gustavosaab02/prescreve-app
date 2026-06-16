@@ -935,18 +935,18 @@ function ProdutoCard({ rec, showBuyBtn, onUpdateStatus, onLembrete, onBula, pati
     Linking.openURL(url).catch(() => Alert.alert('Não foi possível abrir o link'));
   }
 
-  const MARCAS_BUSCA = {
-    'nutrify.com.br':     q => 'https://www.nutrify.com.br/' + encodeURIComponent(q) + '?_q=' + encodeURIComponent(q) + '&map=ft',
-    'maxtitanium.com.br': q => 'https://www.maxtitanium.com.br/' + encodeURIComponent(q) + '?_q=' + encodeURIComponent(q) + '&map=ft',
-    'darkness.com.br':    q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q),
-  };
+  const MARCAS_BUSCA = [
+    { chaves: ['nutrify'],      fn: q => 'https://www.nutrify.com.br?_q=' + encodeURIComponent(q) + '&map=ft' },
+    { chaves: ['maxtitanium', 'max titanium', 'max-titanium'], fn: q => 'https://www.maxtitanium.com.br?_q=' + encodeURIComponent(q) + '&map=ft' },
+    { chaves: ['darkness'],     fn: q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q) },
+  ];
 
   function buildBrandSearchUrl(siteUrl, productName, brandName) {
     if (siteUrl && /^https?:\/\/.+=\s*$/.test(siteUrl)) return siteUrl + encodeURIComponent(productName);
     if (siteUrl && /^https?:\/\/.+\?.+=.+/.test(siteUrl)) return siteUrl;
     const nomeNorm = (brandName || '').toLowerCase();
-    const marcaKey = Object.keys(MARCAS_BUSCA).find(k => nomeNorm.includes(k.split('.')[0]));
-    if (marcaKey) return MARCAS_BUSCA[marcaKey](productName);
+    const marca = MARCAS_BUSCA.find(m => m.chaves.some(c => nomeNorm.includes(c)));
+    if (marca) return marca.fn(productName);
     const q = [productName, brandName].filter(Boolean).join(' ');
     return 'https://www.google.com/search?q=' + encodeURIComponent(q);
   }
