@@ -1193,26 +1193,30 @@ const MARCAS_BUSCA = {
 };
 
 function buildBrandSearchUrl(siteUrl, productName, brandName) {
+  console.log('[marca]', { siteUrl, productName, brandName });
   // URL template terminando com = → appenda produto direto
   if (siteUrl && /^https?:\/\/.+=\s*$/.test(siteUrl)) {
-    return siteUrl + encodeURIComponent(productName);
+    const r = siteUrl + encodeURIComponent(productName);
+    console.log('[marca] template ->', r); return r;
   }
   // URL já é de busca com valor (ex: ?q=creatina) → usa direto
-  if (siteUrl && /^https?:\/\/.+\?.+=.+/.test(siteUrl)) return siteUrl;
+  if (siteUrl && /^https?:\/\/.+\?.+=.+/.test(siteUrl)) {
+    console.log('[marca] busca direta ->', siteUrl); return siteUrl;
+  }
   // Tenta encontrar a marca pelo domínio da URL cadastrada
   if (siteUrl) {
     try {
       const host = new URL(siteUrl).hostname.replace(/^www\./, '');
-      if (MARCAS_BUSCA[host]) return MARCAS_BUSCA[host](productName);
-    } catch(e) {}
-    // Tenta pelo nome da marca
+      console.log('[marca] host:', host);
+      if (MARCAS_BUSCA[host]) { const r = MARCAS_BUSCA[host](productName); console.log('[marca] mapa domínio ->', r); return r; }
+    } catch(e) { console.log('[marca] URL inválida:', siteUrl); }
     const nomeNorm = (brandName || '').toLowerCase();
     const marcaKey = Object.keys(MARCAS_BUSCA).find(k => nomeNorm.includes(k.split('.')[0]));
-    if (marcaKey) return MARCAS_BUSCA[marcaKey](productName);
+    if (marcaKey) { const r = MARCAS_BUSCA[marcaKey](productName); console.log('[marca] mapa nome ->', r); return r; }
   }
-  // Fallback: Google com produto + marca
   const q = [productName, brandName].filter(Boolean).join(' ');
-  return 'https://www.google.com/search?q=' + encodeURIComponent(q);
+  const r = 'https://www.google.com/search?q=' + encodeURIComponent(q);
+  console.log('[marca] fallback Google ->', r); return r;
 }
 
 
