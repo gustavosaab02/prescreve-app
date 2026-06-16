@@ -938,7 +938,7 @@ function ProdutoCard({ rec, showBuyBtn, onUpdateStatus, onLembrete, onBula, pati
   const MARCAS_BUSCA = {
     'nutrify.com.br':           q => 'https://www.nutrify.com.br/busca?q=' + encodeURIComponent(q),
     'maxtitanium.com.br':       q => 'https://www.maxtitanium.com.br/catalogsearch/result/?q=' + encodeURIComponent(q),
-    'darknesssuplement.com.br': q => 'https://www.google.com/search?q=' + encodeURIComponent(q + ' Darkness'),
+    'darkness.com.br':          q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q),
   };
 
   function buildBrandSearchUrl(siteUrl, productName, brandName) {
