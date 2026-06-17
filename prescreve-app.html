@@ -2494,33 +2494,18 @@ function recomendarNovamente(cacheKey) {
   const { items, patId, patName, patWa } = cached;
 
   closeModal('modalPatientHistory');
-
-  // showPage('new-rec') chama resetNewRec() internamente — por isso deve vir ANTES de popular
-  showPage('new-rec');
+  showPage('new-rec'); // chama resetNewRec() internamente — deve vir antes de popular
 
   selectedPatient = { id: patId, name: patName, whatsapp: patWa };
   document.getElementById('selectedPatientChip').style.display = 'block';
   document.getElementById('selectedPatientChip').innerHTML = `<div class="selected-chip"><div><div class="chip-name">${patName}</div><div class="chip-detail">${patWa}</div></div><span class="chip-remove" onclick="clearPatient()">×</span></div>`;
 
+  const manipulados = [];
   items.forEach(item => {
     if (!item.products && item.notes) {
       try {
         const f = typeof item.notes === 'string' ? JSON.parse(item.notes) : item.notes;
-        if (f?.__manipulado) {
-          selectedProducts.push({
-            tipo: 'comp',
-            formula: {
-              nome: f.nome || '',
-              componentes: f.componentes?.length ? f.componentes : [{nome:'',conc:''}],
-              veiculo: f.veiculo || '',
-              qtd: f.qtd || '',
-              dosage: f.dosage || item.dosage || '',
-              frequency: f.frequency || item.frequency || '',
-              duration: f.duration || item.duration || '',
-              notes: f.notes || ''
-            }
-          });
-        }
+        if (f?.__manipulado) manipulados.push({ f, item });
       } catch(e) {}
     } else if (item.products) {
       selectedProducts.push({
@@ -2536,8 +2521,40 @@ function recomendarNovamente(cacheKey) {
     }
   });
 
+  // Manipulados além do primeiro vão como chips; o primeiro vai direto no formulário (editável)
+  manipulados.slice(1).forEach(({ f }) => {
+    selectedProducts.push({
+      tipo: 'comp',
+      formula: {
+        nome: f.nome || '',
+        componentes: f.componentes?.length ? f.componentes : [{nome:'',conc:''}],
+        veiculo: f.veiculo || '',
+        qtd: f.qtd || '',
+        dosage: f.dosage || '',
+        frequency: f.frequency || '',
+        duration: f.duration || '',
+        notes: f.notes || ''
+      }
+    });
+  });
+
   renderAddedProducts();
   goToStep(2);
+
+  // Preenche o formulário com o primeiro manipulado para o médico revisar/editar
+  if (manipulados.length > 0) {
+    const { f } = manipulados[0];
+    setTipoProduto('comp');
+    document.getElementById('compNome').value = f.nome || '';
+    document.getElementById('compVeiculo').value = f.veiculo || '';
+    document.getElementById('compQtd').value = f.qtd || '';
+    document.getElementById('compDosage').value = f.dosage || '';
+    document.getElementById('compFrequency').value = f.frequency || '';
+    document.getElementById('compDuration').value = f.duration || '';
+    document.getElementById('compNotes').value = f.notes || '';
+    compComponentes = (f.componentes?.length ? f.componentes : [{nome:'',conc:''}]).map(c => ({nome: c.nome||'', conc: c.conc||''}));
+    renderCompComponentes();
+  }
 }
 
 function openPatientNotes(patId){
