@@ -2494,7 +2494,9 @@ function recomendarNovamente(cacheKey) {
   const { items, patId, patName, patWa } = cached;
 
   closeModal('modalPatientHistory');
-  resetNewRec();
+
+  // showPage('new-rec') chama resetNewRec() internamente — por isso deve vir ANTES de popular
+  showPage('new-rec');
 
   selectedPatient = { id: patId, name: patName, whatsapp: patWa };
   document.getElementById('selectedPatientChip').style.display = 'block';
@@ -2503,7 +2505,7 @@ function recomendarNovamente(cacheKey) {
   items.forEach(item => {
     if (!item.products && item.notes) {
       try {
-        const f = JSON.parse(item.notes);
+        const f = typeof item.notes === 'string' ? JSON.parse(item.notes) : item.notes;
         if (f?.__manipulado) {
           selectedProducts.push({
             tipo: 'comp',
@@ -2528,14 +2530,13 @@ function recomendarNovamente(cacheKey) {
         frequency: item.frequency || '',
         duration: item.duration || '',
         return_date: item.return_date || '',
-        notes: item.notes || '',
+        notes: typeof item.notes === 'string' ? item.notes : '',
         marcas_sugeridas: item.marcas_sugeridas || null
       });
     }
   });
 
   renderAddedProducts();
-  showPage('new-rec');
   goToStep(2);
 }
 

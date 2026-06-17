@@ -959,7 +959,7 @@ function ProdutoCard({ rec, showBuyBtn, onUpdateStatus, onLembrete, onBula, pati
     { chaves: ['now foods','nowfoods'],                                fn: q => 'https://nowfoods.com.br/?s='+encodeURIComponent(q) },
     { chaves: ['muscletech','muscle tech'],                            fn: q => 'https://www.muscletech.com.br/search?q='+encodeURIComponent(q) },
     { chaves: ['true source','truesource'],                            fn: q => 'https://vivatrue.com.br/search?q='+encodeURIComponent(q) },
-    { chaves: ['bft nutrition','bft','bftnutrition'],                  fn: q => 'https://www.bftnutrition.com.br/' },
+    { chaves: ['bft nutrition','bft','bftnutrition','btf nutrition','btf'], fn: q => 'https://www.bftnutrition.com.br/' },
   ];
 
   function buildBrandSearchUrl(siteUrl, productName, brandName) {
