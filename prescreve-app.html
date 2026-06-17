@@ -2246,6 +2246,11 @@ async function openPatientHistory(patId, patName, modo){
     html += '<div style="font-size:11px;font-weight:700;color:var(--sage);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">✅ Em uso agora (' + emUso.length + ')</div>';
     emUso.forEach(r => {
       const prod = r.products;
+      let nomeEmUso = prod?.name || '';
+      if (!nomeEmUso && !prod && r.notes) {
+        try { const f = JSON.parse(r.notes); if (f?.__manipulado) nomeEmUso = f.nome || 'Manipulado'; } catch(e) {}
+      }
+      nomeEmUso = nomeEmUso || '-';
       let days=0, pct=0, remaining='';
       if(r.started_at && r.duration){
         days = Math.max(0,Math.floor((new Date()-new Date(r.started_at))/86400000));
@@ -2255,7 +2260,7 @@ async function openPatientHistory(patId, patName, modo){
       }
       html += '<div style="background:white;border-radius:10px;padding:10px 12px;margin-bottom:8px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
-          '<div style="font-size:13px;font-weight:600;color:#1a1a1a;">' + (prod?.name||'-') + '</div>' +
+          '<div style="font-size:13px;font-weight:600;color:#1a1a1a;">' + nomeEmUso + '</div>' +
           '<span style="font-size:11px;color:var(--sage);">' + pct + '%</span>' +
         '</div>' +
         (r.dosage||r.frequency?'<div style="font-size:11px;color:#888;margin-bottom:6px;">' + [r.dosage,r.frequency,r.duration].filter(Boolean).join(' · ') + '</div>':'') +
@@ -2397,8 +2402,11 @@ async function openPatientHistory(patId, patName, modo){
       if (!groups[key]) groups[key] = [];
       groups[key].push(r);
     });
+    window._prescricaoCache = window._prescricaoCache || {};
     Object.entries(groups).forEach(([key, items]) => {
       const r = items[0];
+      const cacheKey = 'presc_' + key.replace(/[^0-9]/g, '');
+      window._prescricaoCache[cacheKey] = { items, patId, patName, patWa: pat.whatsapp || '' };
       const date = new Date(r.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
       const statusColor = r.status === 'active' ? '#2d7a47' : r.status === 'completed' ? '#888' : '#c17f3e';
       const statusLabel = r.status === 'active' ? 'Ativo' : r.status === 'completed' ? 'Concluído' : 'Pendente';
@@ -2412,15 +2420,25 @@ async function openPatientHistory(patId, patName, modo){
       }
       items.forEach(item => {
         const prod = item.products;
+        let nomeItem = prod?.name || '';
+        let brandItem = prod?.brand || '';
+        let isManipItem = false;
+        let formulaItem = null;
+        if (!prod && item.notes) {
+          try { const f = JSON.parse(item.notes); if (f?.__manipulado) { isManipItem = true; formulaItem = f; nomeItem = f.nome || 'Manipulado'; brandItem = ''; } } catch(e) {}
+        }
         html += `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-top:1px solid #eee;">
-          <div style="width:6px;height:6px;border-radius:50%;background:var(--sage);margin-top:6px;flex-shrink:0;"></div>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#1a1a1a;">${prod?.name || '-'}</div>
-            <div style="font-size:11px;color:#888;">${prod?.brand || ''}${item.dosage ? ' · ' + item.dosage : ''}${item.frequency ? ' · ' + item.frequency : ''}${item.duration ? ' · ' + item.duration : ''}</div>
+          <div style="width:6px;height:6px;border-radius:50%;background:${isManipItem ? 'var(--comp)' : 'var(--sage)'};margin-top:6px;flex-shrink:0;"></div>
+          <div style="flex:1;">
+            ${isManipItem ? '<div style="font-size:10px;font-weight:700;color:var(--comp);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Manipulado</div>' : ''}
+            <div style="font-size:13px;font-weight:600;color:#1a1a1a;">${nomeItem || '-'}</div>
+            <div style="font-size:11px;color:#888;">${brandItem}${item.dosage ? ' · ' + item.dosage : ''}${item.frequency ? ' · ' + item.frequency : ''}${item.duration ? ' · ' + item.duration : ''}</div>
+            ${isManipItem && formulaItem?.componentes?.length ? '<div style="font-size:11px;color:#666;margin-top:3px;">' + formulaItem.componentes.map(c => c.nome + (c.conc ? ' ' + c.conc : '')).join(', ') + '</div>' : ''}
             ${item.instructions ? '<div style="font-size:11px;color:#666;margin-top:2px;">📝 ' + item.instructions + '</div>' : ''}
           </div>
         </div>`;
       });
+      html += `<div style="margin-top:10px;padding-top:8px;border-top:1px solid #eee;text-align:right;"><button onclick="recomendarNovamente('${cacheKey}')" style="background:none;border:1.5px solid var(--sage);border-radius:8px;color:var(--sage);font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer;">↺ Recomendar novamente</button></div>`;
       html += '</div>';
     });
   }
@@ -2468,6 +2486,57 @@ async function openPatientHistory(patId, patName, modo){
       if (exEl && exEl.style.display === 'none') exEl.parentElement.click();
     }, 100);
   }
+}
+
+function recomendarNovamente(cacheKey) {
+  const cached = window._prescricaoCache?.[cacheKey];
+  if (!cached) return showToast('Dados não encontrados', 'error');
+  const { items, patId, patName, patWa } = cached;
+
+  closeModal('modalPatientHistory');
+  resetNewRec();
+
+  selectedPatient = { id: patId, name: patName, whatsapp: patWa };
+  document.getElementById('selectedPatientChip').style.display = 'block';
+  document.getElementById('selectedPatientChip').innerHTML = `<div class="selected-chip"><div><div class="chip-name">${patName}</div><div class="chip-detail">${patWa}</div></div><span class="chip-remove" onclick="clearPatient()">×</span></div>`;
+
+  items.forEach(item => {
+    if (!item.products && item.notes) {
+      try {
+        const f = JSON.parse(item.notes);
+        if (f?.__manipulado) {
+          selectedProducts.push({
+            tipo: 'comp',
+            formula: {
+              nome: f.nome || '',
+              componentes: f.componentes?.length ? f.componentes : [{nome:'',conc:''}],
+              veiculo: f.veiculo || '',
+              qtd: f.qtd || '',
+              dosage: f.dosage || item.dosage || '',
+              frequency: f.frequency || item.frequency || '',
+              duration: f.duration || item.duration || '',
+              notes: f.notes || ''
+            }
+          });
+        }
+      } catch(e) {}
+    } else if (item.products) {
+      selectedProducts.push({
+        tipo: 'pronto',
+        product: item.products,
+        dosage: item.dosage || '',
+        frequency: item.frequency || '',
+        duration: item.duration || '',
+        return_date: item.return_date || '',
+        notes: item.notes || '',
+        marcas_sugeridas: item.marcas_sugeridas || null
+      });
+    }
+  });
+
+  renderAddedProducts();
+  showPage('new-rec');
+  goToStep(2);
 }
 
 function openPatientNotes(patId){
