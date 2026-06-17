@@ -31,7 +31,8 @@ serve(async (req) => {
         "Authorization": `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Synka <noreply@synkasaude.com.br>",
+        // Usar domínio verificado do Resend até synkasaude.com.br ser verificado em resend.com/domains
+        from: Deno.env.get("RESEND_FROM") || "Synka <onboarding@resend.dev>",
         to: [to],
         subject,
         html,
