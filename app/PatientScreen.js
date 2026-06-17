@@ -936,9 +936,27 @@ function ProdutoCard({ rec, showBuyBtn, onUpdateStatus, onLembrete, onBula, pati
   }
 
   const MARCAS_BUSCA = [
-    { chaves: ['nutrify'],      fn: q => { var s = q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.nutrify.com.br/' + s + '?_q=' + encodeURIComponent(q) + '&map=ft'; } },
-    { chaves: ['maxtitanium', 'max titanium', 'max-titanium'], fn: q => { var s = q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.maxtitanium.com.br/' + s + '?_q=' + encodeURIComponent(q) + '&map=ft'; } },
-    { chaves: ['darkness'],     fn: q => 'https://www.darkness.com.br/search?q=' + encodeURIComponent(q) },
+    { chaves: ['nutrify'],                                        fn: q => { var s=q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.nutrify.com.br/'+s+'?_q='+encodeURIComponent(q)+'&map=ft'; } },
+    { chaves: ['maxtitanium','max titanium','max-titanium'],      fn: q => { var s=q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.maxtitanium.com.br/'+s+'?_q='+encodeURIComponent(q)+'&map=ft'; } },
+    { chaves: ['darkness'],                                       fn: q => 'https://www.darkness.com.br/search?q='+encodeURIComponent(q) },
+    { chaves: ['growth','gsuplementos'],                          fn: q => 'https://www.gsuplementos.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['integral medica','integralmedica','integral médica'], fn: q => 'https://www.integralmedica.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['probiotica','probiótica'],                        fn: q => 'https://www.probiotica.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['midway','midwaylabs'],                            fn: q => 'https://www.midwaylabs.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['black skull','blackskull'],                       fn: q => 'https://www.blackskull.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['dux','dux nutrition'],                            fn: q => 'https://www.duxnutrition.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['body action','bodyaction'],                       fn: q => 'https://www.bodyaction.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['atlhetica','atlhética'],                          fn: q => 'https://www.atlhetica.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['vitafor'],                                        fn: q => 'https://www.vitafor.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['pura vida','puravida'],                           fn: q => 'https://www.puravida.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['equaliv'],                                        fn: q => 'https://www.equaliv.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['new millen','newmillen'],                         fn: q => 'https://www.newmillen.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['optimum nutrition','optimum'],                    fn: q => 'https://www.optimumnutrition.com/pt-br/search#q='+encodeURIComponent(q) },
+    { chaves: ['universal'],                                      fn: q => 'https://www.universal.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['adaptogen'],                                      fn: q => 'https://www.adaptogen.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['underlabz','under labz'],                         fn: q => 'https://www.underlabz.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['ftw'],                                            fn: q => 'https://www.ftw.com.br/busca?q='+encodeURIComponent(q) },
+    { chaves: ['now foods','nowfoods'],                           fn: q => 'https://www.nowfoods.com.br/busca?q='+encodeURIComponent(q) },
   ];
 
   function buildBrandSearchUrl(siteUrl, productName, brandName) {
