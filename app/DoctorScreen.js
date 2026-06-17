@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, ActivityIndicator, Modal, FlatList,
   SafeAreaView, Platform, Alert, Linking
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { sb } from '../supabase';
 
 const SUPABASE_URL = 'https://iwrfgdfxvyqdkqdtrrxg.supabase.co';
@@ -45,12 +46,50 @@ export default function DoctorScreen({ user, onLogout }) {
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pacienteFicha, setPacienteFicha] = useState(null);
+  const notifResponseListener = useRef();
 
   useEffect(() => {
     if (!user?.id) { setLoading(false); return; }
     sb.from('doctors').select('*').eq('id', user.id).single()
-      .then(({ data }) => { setDoctor(data); setLoading(false); });
+      .then(async ({ data }) => {
+        setDoctor(data);
+        setLoading(false);
+        // Salva expo_push_token do médico para receber notificações de acompanhamento
+        try {
+          const { status } = await Notifications.getPermissionsAsync();
+          if (status === 'granted' && data?.id) {
+            const tokenData = await Notifications.getExpoPushTokenAsync({
+              projectId: 'e5fec6c1-e462-4753-8b25-7a2f2651f788',
+            });
+            const expoPushToken = tokenData?.data;
+            if (expoPushToken && expoPushToken !== data.expo_push_token) {
+              await sb.from('doctors').update({ expo_push_token: expoPushToken }).eq('id', data.id);
+            }
+          }
+        } catch(e) { console.log('Doctor push token error:', e); }
+      });
   }, [user]);
+
+  useEffect(() => {
+    // Quando médico toca na notificação de acompanhamento, abre WhatsApp com mensagem pré-preenchida
+    notifResponseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      if (data?.type === 'acompanhamento' && data?.patient_whatsapp) {
+        const num = data.patient_whatsapp.replace(/\D/g, '');
+        const numBR = num.startsWith('55') ? num : '55' + num;
+        const nomeP = (data.patient_name || 'paciente').split(' ')[0];
+        const produto = data.produto || 'o produto';
+        const msg = `Olá ${nomeP}! Tudo bem? Como está se sentindo com ${produto}?`;
+        Linking.openURL(`https://wa.me/${numBR}?text=${encodeURIComponent(msg)}`)
+          .catch(() => Alert.alert('Erro', 'Não foi possível abrir o WhatsApp.'));
+      }
+    });
+    return () => {
+      if (notifResponseListener.current) {
+        Notifications.removeNotificationSubscription(notifResponseListener.current);
+      }
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -408,7 +447,7 @@ function TabInicio({ doctor, onLogout, onTabChange }) {
       const haXdias = new Date(hojeLocal);
       haXdias.setDate(haXdias.getDate() - filtroDias);
       let lembretesQuery = sb.from('recommendations')
-        .select('id, created_at, status, patients(id, name, whatsapp, email), products(name)')
+        .select('id, created_at, status, notes, patients(id, name, whatsapp, email), products(name), recommendation_items(products(name))')
         .eq('doctor_id', doctor.id)
         .gte('created_at', haXdias.toISOString())
         .order('created_at', { ascending: false });
@@ -553,7 +592,11 @@ function TabInicio({ doctor, onLogout, onTabChange }) {
             })
             .map(r => {
               const nomeP = r.patients?.name?.split(' ')[0] || 'paciente';
-              const produto = r.products?.name || 'o produto';
+              let produto = r.products?.name || '';
+              if (!produto && r.recommendation_items?.length > 0)
+                produto = r.recommendation_items[0]?.products?.name || '';
+              if (!produto) { try { const m = JSON.parse(r.notes || ''); if (m?.__manipulado) produto = m.nome || ''; } catch(_) {} }
+              if (!produto) produto = 'o produto';
               const msgAcomp = `Olá ${nomeP}! Tudo bem? Como está se sentindo com ${produto}?`;
               return (
                 <View key={r.id} style={styles.retornoCard}>

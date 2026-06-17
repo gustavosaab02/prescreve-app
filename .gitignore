@@ -1,2 +1,4 @@
 .DS_Store
 node_modules/
+cron_lembretes.sql
+supabase/migrations/20260617000002_cron_lembretes.sql
