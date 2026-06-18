@@ -59,7 +59,27 @@ serve(async (req) => {
 
   let retornosEnviados = 0;
   let acompanhamentosEnviados = 0;
+  let tratamentosAcabandoEnviados = 0;
   const erros: string[] = [];
+
+  // Calcula quantos dias de tratamento a prescrição tem no total
+  function calcTotalDias(qtdComprimidos: number | null, frequency: string, duration: string): number {
+    if (qtdComprimidos && qtdComprimidos > 0) {
+      const freq = (frequency || "").toLowerCase();
+      let tomadosPorDia = 1;
+      if (/2x|duas vezes|2 vez/i.test(freq)) tomadosPorDia = 2;
+      else if (/3x|três vezes|3 vez/i.test(freq)) tomadosPorDia = 3;
+      else if (/4x|quatro vezes|4 vez/i.test(freq)) tomadosPorDia = 4;
+      return Math.floor(qtdComprimidos / tomadosPorDia);
+    }
+    const dur = (duration || "").toLowerCase();
+    const match = dur.match(/([0-9]+)/);
+    if (!match) return 0;
+    const n = parseInt(match[1]);
+    if (/m[eê]s/i.test(dur)) return n * 30;
+    if (/semana/i.test(dur)) return n * 7;
+    return n;
+  }
 
   // ── 1. RETORNO: WhatsApp direto ao paciente (3 dias antes) ──────────────────
   // É logístico — faz sentido vir da Synka
@@ -153,10 +173,89 @@ serve(async (req) => {
     }
   }
 
-  console.log({ retornosEnviados, acompanhamentosEnviados, erros });
+  // ── 3. TRATAMENTO ACABANDO: push pro médico (7 dias antes do fim) ────────────
+  // Busca prescrições ativas com purchased_at preenchido
+  const { data: ativas, error: errAtivas } = await sb
+    .from("recommendations")
+    .select(
+      "id, started_at, duration, frequency, qtd_comprimidos, notes, " +
+      "patients:patient_id(name, whatsapp), " +
+      "products:product_id(name), " +
+      "recommendation_items(products:product_id(name)), " +
+      "doctors:doctor_id(expo_push_token)"
+    )
+    .eq("status", "active")
+    .not("started_at", "is", null)
+    .not("doctor_id", "is", null);
+
+  if (errAtivas) erros.push("ativas query: " + errAtivas.message);
+
+  for (const rec of ativas || []) {
+    const doctorToken = (rec.doctors as any)?.expo_push_token;
+    if (!doctorToken) continue;
+
+    const totalDias = calcTotalDias(
+      rec.qtd_comprimidos,
+      rec.frequency || "",
+      rec.duration || ""
+    );
+    if (totalDias <= 0) continue;
+
+    // Dia em que o tratamento termina
+    const dataInicio = new Date(rec.started_at);
+    dataInicio.setUTCHours(0, 0, 0, 0);
+    const dataFim = new Date(dataInicio);
+    dataFim.setUTCDate(dataInicio.getUTCDate() + totalDias);
+
+    // Dias restantes a partir de hoje
+    const diasRestantes = Math.round((dataFim.getTime() - hoje.getTime()) / 86400000);
+
+    // Notifica exatamente 7 dias antes do fim
+    if (diasRestantes !== 7) continue;
+
+    // Resolve nome do produto
+    let produto = "";
+    try {
+      const manip = JSON.parse(rec.notes || "");
+      if (manip?.__manipulado && manip?.nome) produto = manip.nome;
+    } catch (_) {}
+    if (!produto) produto = (rec.products as any)?.name || "";
+    if (!produto) {
+      const items = rec.recommendation_items as any[];
+      produto = items?.[0]?.products?.name || "";
+    }
+
+    const nomeP = (rec.patients as any)?.name || "paciente";
+    const ehControlado = /clonazepam|alprazolam|diazepam|ritalina|metilfenidato|vyvanse|venvanse|zolpidem|morfina|tramadol|oxicodona/i.test(produto);
+
+    const corpo = ehControlado
+      ? `O tratamento de ${nomeP.split(" ")[0]} com ${produto} acaba em 7 dias. Por ser controlado, a nova receita precisa ser emitida com antecedência.`
+      : `O tratamento de ${nomeP.split(" ")[0]} com ${produto} acaba em 7 dias. Hora de renovar a prescrição?`;
+
+    try {
+      const ok = await enviarPushMedico(
+        doctorToken,
+        ehControlado ? `⚠️ Renovar receita — ${nomeP.split(" ")[0]}` : `🔄 Tratamento acabando — ${nomeP.split(" ")[0]}`,
+        corpo,
+        {
+          type: "tratamento_acabando",
+          patient_name: (rec.patients as any)?.name,
+          patient_whatsapp: (rec.patients as any)?.whatsapp,
+          produto,
+          controlado: ehControlado,
+        }
+      );
+      if (ok) tratamentosAcabandoEnviados++;
+      else erros.push(`acabando ${rec.id}: expo push retornou erro`);
+    } catch (e: any) {
+      erros.push(`acabando ${rec.id}: ${e.message}`);
+    }
+  }
+
+  console.log({ retornosEnviados, acompanhamentosEnviados, tratamentosAcabandoEnviados, erros });
 
   return new Response(
-    JSON.stringify({ ok: true, retornosEnviados, acompanhamentosEnviados, erros }),
+    JSON.stringify({ ok: true, retornosEnviados, acompanhamentosEnviados, tratamentosAcabandoEnviados, erros }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );
 });

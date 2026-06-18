@@ -558,7 +558,10 @@ export default function PatientScreen({ user, onLogout }) {
       return;
     }
     const updates = { status: novoStatus };
-    if (novoStatus === 'active') updates.purchased_at = new Date().toISOString();
+    if (novoStatus === 'active') {
+      updates.started_at = new Date().toISOString();
+      if (qtdComprimidos) updates.qtd_comprimidos = parseInt(qtdComprimidos);
+    }
     // Atualiza local imediatamente (não espera Supabase)
     setRecs(prev => prev.map(r => r.id === recId ? { ...r, ...updates } : r));
     await sb.from('recommendations').update(updates).eq('id', recId);

@@ -74,15 +74,23 @@ export default function DoctorScreen({ user, onLogout }) {
     // Quando médico toca na notificação de acompanhamento, abre WhatsApp com mensagem pré-preenchida
     notifResponseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data;
-      if (data?.type === 'acompanhamento' && data?.patient_whatsapp) {
-        const num = data.patient_whatsapp.replace(/\D/g, '');
-        const numBR = num.startsWith('55') ? num : '55' + num;
-        const nomeP = (data.patient_name || 'paciente').split(' ')[0];
-        const produto = data.produto || 'o produto';
-        const msg = `Olá ${nomeP}! Tudo bem? Como está se sentindo com ${produto}?`;
-        Linking.openURL(`https://wa.me/${numBR}?text=${encodeURIComponent(msg)}`)
-          .catch(() => Alert.alert('Erro', 'Não foi possível abrir o WhatsApp.'));
+      if (!data?.patient_whatsapp) return;
+      const num = data.patient_whatsapp.replace(/\D/g, '');
+      const numBR = num.startsWith('55') ? num : '55' + num;
+      const nomeP = (data.patient_name || 'paciente').split(' ')[0];
+      const produto = data.produto || 'o produto';
+
+      let msg = '';
+      if (data.type === 'acompanhamento') {
+        msg = `Olá ${nomeP}! Tudo bem? Como está se sentindo com ${produto}?`;
+      } else if (data.type === 'tratamento_acabando') {
+        msg = data.controlado
+          ? `Olá ${nomeP}! Seu tratamento com ${produto} está chegando ao fim. Vou emitir uma nova receita para você em breve. 😊`
+          : `Olá ${nomeP}! Seu tratamento com ${produto} está acabando. Precisa renovar a prescrição?`;
       }
+      if (!msg) return;
+      Linking.openURL(`https://wa.me/${numBR}?text=${encodeURIComponent(msg)}`)
+        .catch(() => Alert.alert('Erro', 'Não foi possível abrir o WhatsApp.'));
     });
     return () => {
       if (notifResponseListener.current) {
