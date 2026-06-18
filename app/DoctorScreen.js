@@ -5,7 +5,6 @@ import {
   TextInput, ActivityIndicator, Modal, FlatList,
   SafeAreaView, Platform, Alert, Linking
 } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import { sb } from '../supabase';
 
 const SUPABASE_URL = 'https://iwrfgdfxvyqdkqdtrrxg.supabase.co';
@@ -46,66 +45,12 @@ export default function DoctorScreen({ user, onLogout }) {
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pacienteFicha, setPacienteFicha] = useState(null);
-  const notifResponseListener = useRef();
 
   useEffect(() => {
     if (!user?.id) { setLoading(false); return; }
     sb.from('doctors').select('*').eq('id', user.id).single()
-      .then(async ({ data }) => {
-        setDoctor(data);
-        setLoading(false);
-        // Salva expo_push_token do médico para receber notificações de acompanhamento
-        try {
-          const { status } = await Notifications.getPermissionsAsync();
-          if (status === 'granted' && data?.id) {
-            const tokenData = await Notifications.getExpoPushTokenAsync({
-              projectId: 'e5fec6c1-e462-4753-8b25-7a2f2651f788',
-            });
-            const expoPushToken = tokenData?.data;
-            if (expoPushToken && expoPushToken !== data.expo_push_token) {
-              await sb.from('doctors').update({ expo_push_token: expoPushToken }).eq('id', data.id);
-            }
-          }
-        } catch(e) { console.log('Doctor push token error:', e); }
-      });
+      .then(({ data }) => { setDoctor(data); setLoading(false); });
   }, [user]);
-
-  useEffect(() => {
-    function abrirWhatsAppDaNotificacao(data) {
-      if (!data?.patient_whatsapp) return;
-      const num = data.patient_whatsapp.replace(/\D/g, '');
-      const numBR = num.startsWith('55') ? num : '55' + num;
-      const nomeP = (data.patient_name || 'paciente').split(' ')[0];
-      const produto = data.produto || 'o produto';
-      let msg = '';
-      if (data.type === 'acompanhamento') {
-        msg = `Olá ${nomeP}! Tudo bem? Como está se sentindo com ${produto}?`;
-      } else if (data.type === 'tratamento_acabando') {
-        msg = data.controlado
-          ? `Olá ${nomeP}! Seu tratamento com ${produto} está chegando ao fim. Vou emitir uma nova receita para você em breve. 😊`
-          : `Olá ${nomeP}! Seu tratamento com ${produto} está acabando. Precisa renovar a prescrição?`;
-      }
-      if (!msg) return;
-      Linking.openURL(`https://wa.me/${numBR}?text=${encodeURIComponent(msg)}`)
-        .catch(() => Alert.alert('Erro', 'Não foi possível abrir o WhatsApp.'));
-    }
-
-    // Caso o app estava fechado e foi aberto pelo toque na notificação
-    Notifications.getLastNotificationResponseAsync().then(response => {
-      if (response) abrirWhatsAppDaNotificacao(response.notification.request.content.data);
-    });
-
-    // Caso o app estava em background ou foreground
-    notifResponseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      abrirWhatsAppDaNotificacao(response.notification.request.content.data);
-    });
-
-    return () => {
-      if (notifResponseListener.current) {
-        Notifications.removeNotificationSubscription(notifResponseListener.current);
-      }
-    };
-  }, []);
 
   if (loading) {
     return (
