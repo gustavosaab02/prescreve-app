@@ -71,15 +71,12 @@ export default function DoctorScreen({ user, onLogout }) {
   }, [user]);
 
   useEffect(() => {
-    // Quando médico toca na notificação de acompanhamento, abre WhatsApp com mensagem pré-preenchida
-    notifResponseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data;
+    function abrirWhatsAppDaNotificacao(data) {
       if (!data?.patient_whatsapp) return;
       const num = data.patient_whatsapp.replace(/\D/g, '');
       const numBR = num.startsWith('55') ? num : '55' + num;
       const nomeP = (data.patient_name || 'paciente').split(' ')[0];
       const produto = data.produto || 'o produto';
-
       let msg = '';
       if (data.type === 'acompanhamento') {
         msg = `Olá ${nomeP}! Tudo bem? Como está se sentindo com ${produto}?`;
@@ -91,7 +88,18 @@ export default function DoctorScreen({ user, onLogout }) {
       if (!msg) return;
       Linking.openURL(`https://wa.me/${numBR}?text=${encodeURIComponent(msg)}`)
         .catch(() => Alert.alert('Erro', 'Não foi possível abrir o WhatsApp.'));
+    }
+
+    // Caso o app estava fechado e foi aberto pelo toque na notificação
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (response) abrirWhatsAppDaNotificacao(response.notification.request.content.data);
     });
+
+    // Caso o app estava em background ou foreground
+    notifResponseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      abrirWhatsAppDaNotificacao(response.notification.request.content.data);
+    });
+
     return () => {
       if (notifResponseListener.current) {
         Notifications.removeNotificationSubscription(notifResponseListener.current);
