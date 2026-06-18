@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
@@ -408,7 +408,7 @@ function TabInicio({ doctor, onLogout, onTabChange }) {
       const haXdias = new Date(hojeLocal);
       haXdias.setDate(haXdias.getDate() - filtroDias);
       let lembretesQuery = sb.from('recommendations')
-        .select('id, created_at, status, notes, patients(id, name, whatsapp, email), products(name), recommendation_items(products(name))')
+        .select('id, created_at, status, patients(id, name, whatsapp, email), products(name)')
         .eq('doctor_id', doctor.id)
         .gte('created_at', haXdias.toISOString())
         .order('created_at', { ascending: false });
@@ -553,11 +553,7 @@ function TabInicio({ doctor, onLogout, onTabChange }) {
             })
             .map(r => {
               const nomeP = r.patients?.name?.split(' ')[0] || 'paciente';
-              let produto = r.products?.name || '';
-              if (!produto && r.recommendation_items?.length > 0)
-                produto = r.recommendation_items[0]?.products?.name || '';
-              if (!produto) { try { const m = JSON.parse(r.notes || ''); if (m?.__manipulado) produto = m.nome || ''; } catch(_) {} }
-              if (!produto) produto = 'o produto';
+              const produto = r.products?.name || 'o produto';
               const msgAcomp = `Olá ${nomeP}! Tudo bem? Como está se sentindo com ${produto}?`;
               return (
                 <View key={r.id} style={styles.retornoCard}>
