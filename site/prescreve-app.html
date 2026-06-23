@@ -1891,7 +1891,7 @@ async function sendRecommendation(){
   if(!recs.length){btn.disabled=false;btn.textContent='Enviar via WhatsApp';if(waWindow)waWindow.close();return showToast('Erro ao salvar recomendações','error');}
   const msg=buildWhatsAppMessage(patName,recs,patientId);
   const waUrl='https://wa.me/55'+waNumber+'?text='+encodeURIComponent(msg);
-  if(waWindow){waWindow.location.href=waUrl;}else{const a=document.createElement('a');a.href=waUrl;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();document.body.removeChild(a);}
+  if(waWindow && !waWindow.closed){waWindow.location.href=waUrl;}else{window.open(waUrl,'_blank');}
   const compRecs = recs.filter(r => r._compFormula);
   if (compRecs.length) {
     try {
