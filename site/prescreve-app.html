@@ -1821,6 +1821,42 @@ function _irParaStep3() {
   goToStep(3);
 }
 
+const MARCAS_BUSCA = [
+  { chaves: ['nutrify'],                                             fn: q => { var s=q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.nutrify.com.br/'+s+'?_q='+encodeURIComponent(q)+'&map=ft'; } },
+  { chaves: ['maxtitanium','max titanium','max-titanium'],           fn: q => { var s=q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.maxtitanium.com.br/'+s+'?_q='+encodeURIComponent(q)+'&map=ft'; } },
+  { chaves: ['darkness','darkness nation','nation'],                 fn: q => 'https://www.darkness.com.br/search?q='+encodeURIComponent(q) },
+  { chaves: ['growth','gsuplementos'],                               fn: q => 'https://www.gsuplementos.com.br/busca?busca='+encodeURIComponent(q) },
+  { chaves: ['integral medica','integralmedica','integral médica'],  fn: q => 'https://www.integralmedica.com.br/search?q='+encodeURIComponent(q) },
+  { chaves: ['probiotica','probiótica'],                             fn: q => 'https://www.probiotica.com.br/busca?q='+encodeURIComponent(q) },
+  { chaves: ['midway','midwaylabs','midway labs'],                   fn: q => 'https://loja.midwaylabsusa.com/search?q='+encodeURIComponent(q) },
+  { chaves: ['black skull','blackskull'],                            fn: q => { var s=q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.blackskullusa.com.br/'+s+'?map=ft'; } },
+  { chaves: ['dux','dux nutrition'],                                 fn: q => { var s=q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.duxhumanhealth.com/'+s+'?_q='+encodeURIComponent(q)+'&map=ft'; } },
+  { chaves: ['body action','bodyaction'],                            fn: q => 'https://www.bodyaction.com.br/'+q.toLowerCase().replace(/\s+/g,'-') },
+  { chaves: ['atlhetica','atlhética','atlhetica nutrition'],         fn: q => { var s=q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.atlheticanutrition.com.br/'+s+'?_q='+encodeURIComponent(q)+'&map=ft'; } },
+  { chaves: ['vitafor'],                                             fn: q => { var s=q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.vitafor.com.br/'+s+'?_q='+encodeURIComponent(q)+'&map=ft'; } },
+  { chaves: ['pura vida','puravida'],                                fn: q => 'https://www.puravida.com.br/busca?busca='+encodeURIComponent(q) },
+  { chaves: ['equaliv'],                                             fn: q => { var s=q.toLowerCase().replace(/\s+/g,'-'); return 'https://www.lojaequaliv.com.br/'+s+'?map=ft'; } },
+  { chaves: ['new millen','newmillen'],                              fn: q => 'https://loja.newmillen.com.br/search/?q='+encodeURIComponent(q) },
+  { chaves: ['optimum nutrition','optimum'],                         fn: q => 'https://www.optimumnutrition.com/pt-br/search#q='+encodeURIComponent(q)+'&t=All' },
+  { chaves: ['universal nutrition','universal'],                     fn: q => 'https://www.universalnutrition.com.br/buscar?q='+encodeURIComponent(q) },
+  { chaves: ['adaptogen'],                                           fn: q => 'https://adaptogen.com.br/?s='+encodeURIComponent(q) },
+  { chaves: ['underlabz','under labz'],                              fn: q => 'https://underlabz.com.br/search?q='+encodeURIComponent(q) },
+  { chaves: ['ftw'],                                                 fn: q => 'https://www.ftw.com.br/loja/busca.php?q='+encodeURIComponent(q) },
+  { chaves: ['now foods','nowfoods'],                                fn: q => 'https://nowfoods.com.br/?s='+encodeURIComponent(q) },
+  { chaves: ['muscletech','muscle tech'],                            fn: q => 'https://www.muscletech.com.br/search?q='+encodeURIComponent(q) },
+  { chaves: ['true source','truesource'],                            fn: q => 'https://vivatrue.com.br/search?q='+encodeURIComponent(q) },
+  { chaves: ['bft nutrition','bft','bftnutrition','btf nutrition','btf'], fn: q => 'https://www.bftnutrition.com.br/' },
+];
+function buildBrandSearchUrl(siteUrl, productName, brandName) {
+  if (siteUrl && /^https?:\/\/.+=\s*$/.test(siteUrl)) return siteUrl + encodeURIComponent(productName);
+  if (siteUrl && /^https?:\/\/.+\?.+=.+/.test(siteUrl)) return siteUrl;
+  const nomeNorm = (brandName || '').toLowerCase();
+  const marca = MARCAS_BUSCA.find(m => m.chaves.some(c => nomeNorm.includes(c)));
+  if (marca) return marca.fn(productName);
+  const q = [productName, brandName].filter(Boolean).join(' ');
+  return 'https://www.google.com/search?q=' + encodeURIComponent(q);
+}
+
 async function sendRecommendation(){
   const btn=document.getElementById('sendBtn');btn.disabled=true;btn.textContent='Enviando...';
   let patientId=selectedPatient?.id;
@@ -1845,7 +1881,7 @@ async function sendRecommendation(){
       if(!error&&rec)recs.push({...rec,_compFormula:p.formula,products:{name:p.formula.nome,brand:'Manipulado',purchase_url:null}});
     } else {
       const notesVal = p.marcas_sugeridas?.length
-        ? JSON.stringify({ marcas: p.marcas_sugeridas.map(m=>({nome:m.nome,url:m.site_url||''})), obs: p.notes||'' })
+        ? JSON.stringify({ marcas: p.marcas_sugeridas.map(m=>({nome:m.nome,url:buildBrandSearchUrl(m.site_url,p.product.name,m.nome)})), obs: p.notes||'' })
         : p.notes||null;
       const{data:rec,error}=await sb.from('recommendations').insert([{doctor_id:currentDoctor.id,patient_id:patientId,product_id:p.product.id,dosage:p.dosage||null,frequency:p.frequency||null,duration:p.duration||null,return_date:p.return_date||null,notes:notesVal,marcas_sugeridas:p.marcas_sugeridas||null,status:'not_started'}]).select().single();
       if(error)console.error('Erro INSERT recommendation:', JSON.stringify(error), 'produto:', p.product?.id, 'doctor:', currentDoctor?.id, 'patient:', patientId);
