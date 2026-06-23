@@ -1844,7 +1844,10 @@ async function sendRecommendation(){
       const{data:rec,error}=await sb.from('recommendations').insert([{doctor_id:currentDoctor.id,patient_id:patientId,product_id:null,dosage:p.formula.dosage,frequency:p.formula.frequency,duration:p.formula.duration,notes:formulaJson,status:'not_started'}]).select().single();
       if(!error&&rec)recs.push({...rec,_compFormula:p.formula,products:{name:p.formula.nome,brand:'Manipulado',purchase_url:null}});
     } else {
-      const{data:rec,error}=await sb.from('recommendations').insert([{doctor_id:currentDoctor.id,patient_id:patientId,product_id:p.product.id,dosage:p.dosage||null,frequency:p.frequency||null,duration:p.duration||null,return_date:p.return_date||null,notes:p.notes||null,marcas_sugeridas:p.marcas_sugeridas||null,status:'not_started'}]).select().single();
+      const notesVal = p.marcas_sugeridas?.length
+        ? JSON.stringify({ marcas: p.marcas_sugeridas.map(m=>({nome:m.nome,url:m.site_url||''})), obs: p.notes||'' })
+        : p.notes||null;
+      const{data:rec,error}=await sb.from('recommendations').insert([{doctor_id:currentDoctor.id,patient_id:patientId,product_id:p.product.id,dosage:p.dosage||null,frequency:p.frequency||null,duration:p.duration||null,return_date:p.return_date||null,notes:notesVal,marcas_sugeridas:p.marcas_sugeridas||null,status:'not_started'}]).select().single();
       if(error)console.error('Erro INSERT recommendation:', JSON.stringify(error), 'produto:', p.product?.id, 'doctor:', currentDoctor?.id, 'patient:', patientId);
       if(!error&&rec)recs.push({...rec,products:p.product});
     }
