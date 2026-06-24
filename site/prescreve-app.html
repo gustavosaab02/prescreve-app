@@ -927,12 +927,12 @@ async function handleRegister(){
   const{data,error}=await sb.auth.signUp({email,password});
   if(error){btn.disabled=false;btn.textContent='Criar conta';return showAuthError(error.message);}
   if(data.user){
-    await sb.from('doctors').insert([{
-      id:data.user.id,email,name,crm,specialty,
-      cpf:cpfDigits,
-      whatsapp:whatsapp||null,
-      council_validated:!validacao.aviso
-    }]);
+    const{error:regErr}=await sb.rpc('register_doctor',{
+      p_id:data.user.id,p_email:email,p_name:name,p_crm:crm,
+      p_specialty:specialty,p_cpf:cpfDigits,
+      p_whatsapp:whatsapp||null,p_council_validated:!validacao.aviso
+    });
+    if(regErr){btn.disabled=false;btn.textContent='Criar conta';return showAuthError('Erro ao criar perfil: '+regErr.message);}
   }
   btn.disabled=false;btn.textContent='Criar conta';
   document.getElementById('registerForm').innerHTML=`<div style="text-align:center;padding:16px 0;"><div style="font-size:40px;margin-bottom:14px;">📧</div><div style="font-size:16px;font-weight:600;color:white;margin-bottom:8px;">Confirme seu e-mail</div><div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.8;">Enviamos um link de confirmação para<br><strong style="color:rgba(255,255,255,0.8);">${email}</strong><br><br>Abra seu e-mail, clique no link e depois volte aqui para entrar.<br><br><strong style="color:rgba(255,255,255,0.6);">⚠️ Você só poderá entrar após confirmar o e-mail.</strong></div><button class="btn-primary" style="margin-top:20px;" onclick="switchTab('login')">Ir para o login →</button></div>`;
