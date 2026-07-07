@@ -589,7 +589,7 @@ tr:hover td { background:#fafef9; }
           <textarea class="import-textarea" id="textoImportInput" placeholder="Cole aqui o texto da sua receita..."></textarea>
           <button onclick="extrairProtocoloIA()" id="btnExtrair" style="width:100%;margin-top:12px;padding:14px;border:none;border-radius:12px;background:var(--sage);color:white;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" disabled>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.5 3.5L14 7l-3.5 1.5L9 12l-1.5-3.5L4 7l3.5-1.5L9 2z" stroke="white" stroke-width="1.3" stroke-linejoin="round"/></svg>
-            Extrair com IA
+            Continuar →
           </button>
         </div>
         <div id="importStep2" style="display:none;">
@@ -2961,7 +2961,7 @@ async function handlePdfUpload(file) {
     if (!texto.trim()) { showToast('PDF sem texto extraivel. Tente tirar uma foto.', 'error'); resetUploadLabel(); return; }
     document.getElementById('textoImportInput').value = texto.trim();
     document.getElementById('btnExtrair').disabled = false;
-    showToast('PDF carregado! Clique em Extrair com IA.', 'success');
+    showToast('PDF carregado! Clique em Continuar →.', 'success');
   } catch(e) {
     showToast('Erro ao ler PDF. Tente copiar e colar o texto.', 'error');
   }
@@ -2978,7 +2978,7 @@ async function handleWordUpload(file) {
     if (!result.value.trim()) { showToast('Documento sem texto.', 'error'); resetUploadLabel(); return; }
     document.getElementById('textoImportInput').value = result.value.trim();
     document.getElementById('btnExtrair').disabled = false;
-    showToast('Documento carregado! Clique em Extrair com IA.', 'success');
+    showToast('Documento carregado! Clique em Continuar →.', 'success');
   } catch(e) {
     showToast('Erro ao ler Word. Tente copiar e colar o texto.', 'error');
   }
@@ -3053,7 +3053,7 @@ async function extrairProtocoloIA() {
     if (!Array.isArray(itens) || !itens.length) {
       showToast('Nenhum produto encontrado. Tente colar um texto com nomes de medicamentos ou suplementos.', 'error');
       btn.disabled = false;
-      btn.innerHTML = 'Extrair com IA';
+      btn.innerHTML = 'Continuar →';
       return;
     }
     itensImportadosCache = itens;
@@ -3062,7 +3062,7 @@ async function extrairProtocoloIA() {
     showToast('Erro ao extrair. Verifique sua conexão.', 'error');
   }
   btn.disabled = false;
-  btn.innerHTML = 'Extrair com IA';
+  btn.innerHTML = 'Continuar →';
 }
 
 function voltarImportStep1() {
