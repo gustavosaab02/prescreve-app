@@ -20,10 +20,22 @@ Deno.serve(async (req: Request) => {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        max_tokens: 1000,
+        max_tokens: 1500,
         messages: [{
           role: 'user',
-          content: `Você está lendo uma receita ou protocolo de saúde. Extraia TODOS os produtos, medicamentos ou suplementos mencionados. Para cada um, identifique nome, dosagem, frequência e duração se disponíveis. Responda SOMENTE com array JSON válido sem markdown, sem explicação: [{"nome":"nome do produto","dosagem":"ex: 5000 UI ou string vazia se não informado","frequencia":"ex: 1x ao dia ou string vazia","duracao":"ex: 3 meses ou string vazia"}]. Se não houver produtos de saúde, retorne [].
+          content: `Você está lendo uma receita ou protocolo de saúde. Extraia TODOS os produtos, medicamentos ou suplementos.
+
+Para cada item classifique o tipo:
+- "pronto": produto comercial comprado pronto (ex: Vitamina D3 5000UI, Ômega 3, Whey protein, Ritalina)
+- "manipulado": fórmula que uma farmácia manipula sob encomenda (ex: fórmulas com vários ativos combinados como "Vitamina C 1g + Zinco 20mg + Selênio", ou quando o texto diz "manipular", "fórmula", "aviado em farmácia")
+
+Para manipulados, tente extrair os componentes individuais se listados.
+
+Responda SOMENTE com array JSON válido sem markdown: [{"nome":"nome do produto ou fórmula","tipo":"pronto","dosagem":"ex: 5000 UI","frequencia":"ex: 1x ao dia","duracao":"ex: 3 meses","componentes":[]}]
+
+Para manipulados com componentes: {"nome":"Fórmula Detox","tipo":"manipulado","dosagem":"1 capsula","frequencia":"1x ao dia","duracao":"60 dias","componentes":[{"nome":"Vitamina C","conc":"500mg"},{"nome":"Zinco","conc":"10mg"}]}
+
+Se não houver produtos, retorne [].
 
 Texto da receita:
 ${texto}`

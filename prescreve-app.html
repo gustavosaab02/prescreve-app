@@ -3015,12 +3015,33 @@ function resetUploadLabel() {
 function mostrarPreviewItens() {
   if (!itensImportadosCache || !itensImportadosCache.length) return;
   document.getElementById('importFoundMsg').textContent = itensImportadosCache.length + ' produto(s) identificado(s)';
-  document.getElementById('importPreviewList').innerHTML = itensImportadosCache.map(function(item) {
-    const detalhe = [item.dosagem, item.frequencia, item.duracao].filter(Boolean).join(' · ') || 'Sem posologia informada';
-    return '<div class="protocolo-preview-item"><div class="protocolo-preview-nome">' + item.nome + '</div><div class="protocolo-preview-detalhe">' + detalhe + '</div></div>';
+  document.getElementById('importPreviewList').innerHTML = itensImportadosCache.map(function(item, idx) {
+    const tipo = item.tipo || 'pronto';
+    const isManip = tipo === 'manipulado';
+    const detalhe = [item.dosagem, item.frequencia, item.duracao].filter(Boolean).join(' · ') || 'Sem posologia';
+    const tipoLabel = isManip ? 'Manipulado' : 'Produto pronto';
+    const tipoCor = isManip ? '#7c3aed' : 'var(--sage)';
+    const tipoBg = isManip ? '#f3f0ff' : 'var(--sage-pale)';
+    const compPreview = isManip && item.componentes && item.componentes.length
+      ? '<div style="font-size:11px;color:#7c3aed;margin-top:4px;">' + item.componentes.map(function(c){ return c.nome + (c.conc ? ' ' + c.conc : ''); }).join(' + ') + '</div>'
+      : '';
+    return '<div class="protocolo-preview-item" style="border-left-color:' + tipoCor + ';margin-bottom:8px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">' +
+      '<div class="protocolo-preview-nome">' + item.nome + '</div>' +
+      '<button onclick="toggleTipoItem(' + idx + ')" style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;border:1px solid ' + tipoCor + ';background:' + tipoBg + ';color:' + tipoCor + ';cursor:pointer;">' + tipoLabel + '</button>' +
+      '</div>' +
+      '<div class="protocolo-preview-detalhe">' + detalhe + '</div>' +
+      compPreview +
+      '</div>';
   }).join('');
   document.getElementById('importStep1').style.display = 'none';
   document.getElementById('importStep2').style.display = 'block';
+}
+
+function toggleTipoItem(idx) {
+  if (!itensImportadosCache[idx]) return;
+  itensImportadosCache[idx].tipo = itensImportadosCache[idx].tipo === 'manipulado' ? 'pronto' : 'manipulado';
+  mostrarPreviewItens();
 }
 
 async function loadProtocolos() {
@@ -3080,17 +3101,24 @@ async function aplicarProtocoloStep1(idx) {
   selectedProducts = [];
   for (var i = 0; i < protocolo.items.length; i++) {
     var item = protocolo.items[i];
-    var nomeLower = removeAcentos((item.nome || '').toLowerCase());
-    var produto = allProducts.find(function(p) {
-      return removeAcentos(p.name.toLowerCase()).includes(nomeLower.slice(0, 6)) ||
-             nomeLower.includes(removeAcentos(p.name.toLowerCase()).slice(0, 6));
-    });
-    if (!produto && item.nome) {
-      var ins = await sb.from('products').insert([{ name: item.nome, category: 'Outros', doctor_id: currentDoctor.id }]).select().single();
-      if (ins.data) { allProducts.push(ins.data); produto = ins.data; }
-    }
-    if (produto) {
-      selectedProducts.push({ tipo: 'pronto', product: produto, dosage: item.dosagem || '', frequency: item.frequencia || '', duration: item.duracao || '', return_date: null, notes: '', marcas_sugeridas: null });
+    if (item.tipo === 'manipulado') {
+      var comps = (item.componentes && item.componentes.length) ? item.componentes : [{ nome: item.nome, conc: item.dosagem || '' }];
+      selectedProducts.push({ tipo: 'comp', formula: {
+        nome: item.nome, componentes: comps, veiculo: '', qtd: '',
+        dosage: item.dosagem || '', frequency: item.frequencia || '',
+        duration: item.duracao || '', notes: ''
+      }});
+    } else {
+      var nomeLower = removeAcentos((item.nome || '').toLowerCase());
+      var produto = allProducts.find(function(p) {
+        return removeAcentos(p.name.toLowerCase()).includes(nomeLower.slice(0, 6)) ||
+               nomeLower.includes(removeAcentos(p.name.toLowerCase()).slice(0, 6));
+      });
+      if (!produto && item.nome) {
+        var ins = await sb.from('products').insert([{ name: item.nome, category: 'Outros', doctor_id: currentDoctor.id }]).select().single();
+        if (ins.data) { allProducts.push(ins.data); produto = ins.data; }
+      }
+      if (produto) selectedProducts.push({ tipo: 'pronto', product: produto, dosage: item.dosagem || '', frequency: item.frequencia || '', duration: item.duracao || '', return_date: null, notes: '', marcas_sugeridas: null });
     }
   }
   if (!selectedProducts.length) return showToast('Nenhum produto encontrado no protocolo', 'error');
@@ -3187,17 +3215,23 @@ async function aplicarProtocoloItems(itens) {
   let adicionados = 0;
   for (var i = 0; i < itens.length; i++) {
     var item = itens[i];
-    var nomeLower = removeAcentos((item.nome || '').toLowerCase());
-    var produto = allProducts.find(function(p) {
-      return removeAcentos(p.name.toLowerCase()).includes(nomeLower.slice(0,6)) || nomeLower.includes(removeAcentos(p.name.toLowerCase()).slice(0,6));
-    });
-    if (!produto && item.nome) {
-      var ins = await sb.from('products').insert([{ name: item.nome, category: 'Outros', doctor_id: currentDoctor.id }]).select().single();
-      if (ins.data) { allProducts.push(ins.data); produto = ins.data; }
-    }
-    if (produto) {
-      selectedProducts.push({ tipo:'pronto', product:produto, dosage:item.dosagem||'', frequency:item.frequencia||'', duration:item.duracao||'', return_date:null, notes:'', marcas_sugeridas:null });
+    if (item.tipo === 'manipulado') {
+      var comps = (item.componentes && item.componentes.length) ? item.componentes : [{ nome: item.nome, conc: item.dosagem || '' }];
+      selectedProducts.push({ tipo:'comp', formula:{ nome:item.nome, componentes:comps, veiculo:'', qtd:'', dosage:item.dosagem||'', frequency:item.frequencia||'', duration:item.duracao||'', notes:'' }});
       adicionados++;
+    } else {
+      var nomeLower = removeAcentos((item.nome || '').toLowerCase());
+      var produto = allProducts.find(function(p) {
+        return removeAcentos(p.name.toLowerCase()).includes(nomeLower.slice(0,6)) || nomeLower.includes(removeAcentos(p.name.toLowerCase()).slice(0,6));
+      });
+      if (!produto && item.nome) {
+        var ins = await sb.from('products').insert([{ name: item.nome, category: 'Outros', doctor_id: currentDoctor.id }]).select().single();
+        if (ins.data) { allProducts.push(ins.data); produto = ins.data; }
+      }
+      if (produto) {
+        selectedProducts.push({ tipo:'pronto', product:produto, dosage:item.dosagem||'', frequency:item.frequencia||'', duration:item.duracao||'', return_date:null, notes:'', marcas_sugeridas:null });
+        adicionados++;
+      }
     }
   }
   renderAddedProducts();
@@ -3207,7 +3241,7 @@ async function aplicarProtocoloItems(itens) {
   var navItems = document.querySelectorAll('.nav-item');
   if (navItems[1]) navItems[1].classList.add('active');
   goToStep(2);
-  showToast(adicionados + ' produto(s) pre-carregado(s)! Volte ao passo 1 para selecionar o paciente.', 'success');
+  showToast(adicionados + ' produto(s) carregado(s)! Selecione o paciente no passo 1 e confirme.', 'success');
 }
 
 function confirmarDeletarProtocolo(id, idx) {
