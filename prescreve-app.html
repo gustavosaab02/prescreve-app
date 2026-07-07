@@ -6,6 +6,8 @@
 <title>synka</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root {
   --sage: #4a7c6f; --sage-light: #6a9e8f; --sage-pale: #e8f2ef; --sage-dark: #2d5a50;
@@ -570,6 +572,20 @@ tr:hover td { background:#fafef9; }
           </div>
         </div>
         <div id="importStep1">
+          <!-- Upload de arquivo -->
+          <label id="uploadLabel" style="display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed var(--sage-light);border-radius:12px;padding:20px;cursor:pointer;background:var(--sage-pale);margin-bottom:14px;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--sage)'" onmouseout="this.style.borderColor='var(--sage-light)'">
+            <input type="file" id="fileImportInput" accept=".pdf,.doc,.docx,image/*" style="display:none;" onchange="handleFileImport(this)">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3v12M5 9l6-6 6 6" stroke="var(--sage)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 18h16" stroke="var(--sage)" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--sage);">Carregar arquivo</div>
+              <div style="font-size:12px;color:var(--mid);margin-top:1px;">PDF, Word (.docx) ou foto da receita</div>
+            </div>
+          </label>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+            <span style="font-size:12px;color:var(--light);">ou cole o texto</span>
+            <div style="flex:1;height:1px;background:var(--border);"></div>
+          </div>
           <textarea class="import-textarea" id="textoImportInput" placeholder="Cole aqui o texto da sua receita..."></textarea>
           <button onclick="extrairProtocoloIA()" id="btnExtrair" style="width:100%;margin-top:12px;padding:14px;border:none;border-radius:12px;background:var(--sage);color:white;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" disabled>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.5 3.5L14 7l-3.5 1.5L9 12l-1.5-3.5L4 7l3.5-1.5L9 2z" stroke="white" stroke-width="1.3" stroke-linejoin="round"/></svg>
@@ -2884,6 +2900,115 @@ document.addEventListener('input', function(e) {
   }
 });
 
+async function handleFileImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  const ext = file.name.split('.').pop().toLowerCase();
+  const isImage = file.type.startsWith('image/') || ['jpg','jpeg','png','heic','webp','gif'].includes(ext);
+  if (isImage) {
+    await handleImageUpload(file);
+  } else if (ext === 'pdf') {
+    await handlePdfUpload(file);
+  } else if (['doc','docx'].includes(ext)) {
+    await handleWordUpload(file);
+  } else {
+    showToast('Formato nao suportado. Use PDF, Word ou imagem.', 'error');
+  }
+}
+
+async function handleImageUpload(file) {
+  const label = document.getElementById('uploadLabel');
+  label.innerHTML = '<span class="spinner"></span><span style="font-size:14px;font-weight:600;color:var(--sage);">Analisando imagem com IA...</span>';
+  try {
+    const base64 = await fileToBase64(file);
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session ? session.access_token : SUPABASE_KEY;
+    const res = await fetch(SUPABASE_URL + '/functions/v1/analyze-prescription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ image: base64, tipo: 'geral' }),
+    });
+    const raw = await res.json();
+    if (!Array.isArray(raw) || !raw.length) {
+      showToast('Nenhum produto encontrado na imagem', 'error');
+      resetUploadLabel(); return;
+    }
+    itensImportadosCache = raw.map(function(i) {
+      return { nome: i.produto||i.nome||'', dosagem: i.dosagem||'', frequencia: i.frequencia||'', duracao: i.duracao||'' };
+    }).filter(function(i){ return i.nome; });
+    mostrarPreviewItens();
+  } catch(e) {
+    showToast('Erro ao processar imagem', 'error');
+  }
+  resetUploadLabel();
+}
+
+async function handlePdfUpload(file) {
+  const label = document.getElementById('uploadLabel');
+  label.innerHTML = '<span class="spinner"></span><span style="font-size:14px;font-weight:600;color:var(--sage);">Lendo PDF...</span>';
+  try {
+    if (!window.pdfjsLib) { showToast('Aguarde o carregamento da biblioteca PDF', 'error'); resetUploadLabel(); return; }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let texto = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      texto += content.items.map(function(it){ return it.str; }).join(' ') + '\n';
+    }
+    if (!texto.trim()) { showToast('PDF sem texto extraivel. Tente tirar uma foto.', 'error'); resetUploadLabel(); return; }
+    document.getElementById('textoImportInput').value = texto.trim();
+    document.getElementById('btnExtrair').disabled = false;
+    showToast('PDF carregado! Clique em Extrair com IA.', 'success');
+  } catch(e) {
+    showToast('Erro ao ler PDF. Tente copiar e colar o texto.', 'error');
+  }
+  resetUploadLabel();
+}
+
+async function handleWordUpload(file) {
+  const label = document.getElementById('uploadLabel');
+  label.innerHTML = '<span class="spinner"></span><span style="font-size:14px;font-weight:600;color:var(--sage);">Lendo documento Word...</span>';
+  try {
+    if (!window.mammoth) { showToast('Aguarde o carregamento da biblioteca Word', 'error'); resetUploadLabel(); return; }
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+    if (!result.value.trim()) { showToast('Documento sem texto.', 'error'); resetUploadLabel(); return; }
+    document.getElementById('textoImportInput').value = result.value.trim();
+    document.getElementById('btnExtrair').disabled = false;
+    showToast('Documento carregado! Clique em Extrair com IA.', 'success');
+  } catch(e) {
+    showToast('Erro ao ler Word. Tente copiar e colar o texto.', 'error');
+  }
+  resetUploadLabel();
+}
+
+function fileToBase64(file) {
+  return new Promise(function(resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result.split(',')[1]); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function resetUploadLabel() {
+  document.getElementById('uploadLabel').innerHTML = '<input type="file" id="fileImportInput" accept=".pdf,.doc,.docx,image/*" style="display:none;" onchange="handleFileImport(this)"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3v12M5 9l6-6 6 6" stroke="var(--sage)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 18h16" stroke="var(--sage)" stroke-width="1.5" stroke-linecap="round"/></svg><div><div style="font-size:14px;font-weight:700;color:var(--sage);">Carregar arquivo</div><div style="font-size:12px;color:var(--mid);margin-top:1px;">PDF, Word (.docx) ou foto da receita</div></div>';
+}
+
+function mostrarPreviewItens() {
+  if (!itensImportadosCache || !itensImportadosCache.length) return;
+  document.getElementById('importFoundMsg').textContent = itensImportadosCache.length + ' produto(s) identificado(s)';
+  document.getElementById('importPreviewList').innerHTML = itensImportadosCache.map(function(item) {
+    const detalhe = [item.dosagem, item.frequencia, item.duracao].filter(Boolean).join(' · ') || 'Sem posologia informada';
+    return '<div class="protocolo-preview-item"><div class="protocolo-preview-nome">' + item.nome + '</div><div class="protocolo-preview-detalhe">' + detalhe + '</div></div>';
+  }).join('');
+  document.getElementById('importStep1').style.display = 'none';
+  document.getElementById('importStep2').style.display = 'block';
+}
+
 async function loadProtocolos() {
   if (!currentDoctor) return;
   const { data } = await sb.from('doctor_templates').select('*').eq('doctor_id', currentDoctor.id).order('created_at', { ascending: false });
@@ -2932,13 +3057,7 @@ async function extrairProtocoloIA() {
       return;
     }
     itensImportadosCache = itens;
-    document.getElementById('importFoundMsg').textContent = itens.length + ' produto(s) identificado(s)';
-    document.getElementById('importPreviewList').innerHTML = itens.map(function(item) {
-      const detalhe = [item.dosagem, item.frequencia, item.duracao].filter(Boolean).join(' · ') || 'Sem posologia informada';
-      return '<div class="protocolo-preview-item"><div class="protocolo-preview-nome">' + item.nome + '</div><div class="protocolo-preview-detalhe">' + detalhe + '</div></div>';
-    }).join('');
-    document.getElementById('importStep1').style.display = 'none';
-    document.getElementById('importStep2').style.display = 'block';
+    mostrarPreviewItens();
   } catch(e) {
     showToast('Erro ao extrair. Verifique sua conexão.', 'error');
   }
@@ -2950,6 +3069,7 @@ function voltarImportStep1() {
   itensImportadosCache = null;
   document.getElementById('importStep1').style.display = 'block';
   document.getElementById('importStep2').style.display = 'none';
+  resetUploadLabel();
 }
 
 async function salvarProtocoloWeb() {
