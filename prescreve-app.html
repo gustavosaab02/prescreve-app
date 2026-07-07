@@ -176,6 +176,18 @@ tr:hover td { background:#fafef9; }
 .meal-plan-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
 .meal-plan-card-title { font-size:16px; font-weight:700; color:#0f1f1a; }
 .meal-plan-card-paciente { font-size:13px; color:#6b9e8e; margin-top:2px; }
+.protocolo-card { background:white; border:1.5px solid var(--border); border-radius:14px; padding:18px; margin-bottom:12px; transition:box-shadow 0.15s; }
+.protocolo-card:hover { box-shadow:0 2px 12px rgba(74,158,117,0.1); }
+.protocolo-nome { font-size:15px; font-weight:700; color:var(--charcoal); margin-bottom:2px; }
+.protocolo-count { font-size:12px; color:var(--light); margin-bottom:8px; }
+.protocolo-item { font-size:12px; color:var(--mid); padding:3px 0; border-left:2px solid var(--sage-light); padding-left:8px; margin-bottom:3px; }
+.protocolo-actions { display:flex; gap:8px; margin-top:14px; }
+.import-box { background:white; border:1.5px solid var(--border); border-radius:14px; padding:24px; margin-bottom:24px; }
+.import-textarea { width:100%; min-height:180px; padding:14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; font-family:'DM Sans',sans-serif; color:var(--charcoal); resize:vertical; line-height:1.6; box-sizing:border-box; outline:none; }
+.import-textarea:focus { border-color:var(--sage); }
+.protocolo-preview-item { background:var(--sage-pale); border-left:3px solid var(--sage); border-radius:0 10px 10px 0; padding:10px 14px; margin-bottom:8px; }
+.protocolo-preview-nome { font-size:14px; font-weight:700; color:var(--charcoal); margin-bottom:2px; }
+.protocolo-preview-detalhe { font-size:12px; color:var(--mid); }
 </style>
 </head>
 <body>
@@ -246,6 +258,7 @@ tr:hover td { background:#fafef9; }
     <div class="nav-item" onclick="showPage('acompanhamento')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-4 3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nav-label">Acompanhamento</span></div>
     <div class="nav-item" onclick="showPage('calendario')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3" width="13" height="11.5" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M1.5 7h13M5 1.5v3M11 1.5v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">Agenda</span></div>
     <div class="nav-item" id="nav-meal-plan" style="display:none" onclick="showPage('meal-plan')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2v12M3 5h4a2 2 0 0 1 0 4H3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 2v4M12 2v4M11 6v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="nav-label">Plano Alimentar</span></div>
+    <div class="nav-item" onclick="showPage('protocolos')"><span class="nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M11 1.5H5a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 5 14.5h6a1.5 1.5 0 0 0 1.5-1.5V3A1.5 1.5 0 0 0 11 1.5z" stroke="currentColor" stroke-width="1.5"/><path d="M6 6h4M6 9h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">Protocolos</span></div>
     <div class="sidebar-bottom">
       <div style="padding:0 12px 8px;">
         <button onclick="abrirSettingsMedico()" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:8px 12px;border-radius:9px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;"><span style="font-size:16px;">⚙️</span><span class="nav-label">Configurações</span></button>
@@ -325,6 +338,10 @@ tr:hover td { background:#fafef9; }
         <div class="card">
           <div class="card-header"><div class="card-title">Produtos recomendados</div><span style="font-size:12px;color:var(--light);" id="prodCount">0 produto(s)</span></div>
           <div class="card-body">
+            <div id="protocoloQuickBar" style="display:none;background:var(--sage-pale);border:1.5px solid var(--sage-light);border-radius:10px;padding:10px 14px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:10px;">
+              <span style="font-size:13px;color:var(--sage-dark);font-weight:600;">📋 Pré-carregar de um protocolo?</span>
+              <button onclick="showPage('protocolos')" style="background:var(--sage);color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">Ver protocolos</button>
+            </div>
             <div id="addedProductsList"></div>
             <div id="addProductForm" style="background:#fafafa;border-radius:14px;padding:16px;border:1.5px dashed var(--border);margin-bottom:16px;">
               <div style="font-size:12px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;" id="addFormTitle">Produto 1</div>
@@ -535,6 +552,57 @@ tr:hover td { background:#fafef9; }
         </select>
       </div>
       <div id="acompList"><div class="loading"><span class="spinner"></span>Carregando...</div></div>
+    </div>
+
+    <!-- PÁGINA PROTOCOLOS -->
+    <div class="page" id="page-protocolos">
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div><div class="page-title">Meus Protocolos</div><div class="page-sub">Importe receitas do Word ou PDF e reutilize com qualquer paciente</div></div>
+      </div>
+      <div class="import-box">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:var(--sage-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v10M5 8l4 4 4-4" stroke="var(--sage)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14h12" stroke="var(--sage)" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--charcoal);">Importar receita existente</div>
+            <div style="font-size:12px;color:var(--light);margin-top:1px;">Cole o texto do Word, PDF, e-mail ou qualquer formato</div>
+          </div>
+        </div>
+        <div id="importStep1">
+          <textarea class="import-textarea" id="textoImportInput" placeholder="Cole aqui o texto da sua receita..."></textarea>
+          <button onclick="extrairProtocoloIA()" id="btnExtrair" style="width:100%;margin-top:12px;padding:14px;border:none;border-radius:12px;background:var(--sage);color:white;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;" disabled>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l1.5 3.5L14 7l-3.5 1.5L9 12l-1.5-3.5L4 7l3.5-1.5L9 2z" stroke="white" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            Extrair com IA
+          </button>
+        </div>
+        <div id="importStep2" style="display:none;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;background:#e8f5f0;border-radius:10px;padding:12px 14px;">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="var(--sage)" stroke-width="1.5"/><path d="M6.5 10l2.5 2.5L13.5 8" stroke="var(--sage)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span style="font-size:14px;font-weight:700;color:var(--sage);" id="importFoundMsg">produto(s) identificado(s)</span>
+          </div>
+          <div id="importPreviewList" style="margin-bottom:16px;"></div>
+          <button onclick="voltarImportStep1()" style="background:none;border:none;color:var(--light);font-size:13px;cursor:pointer;text-decoration:underline;margin-bottom:16px;">Voltar e editar texto</button>
+          <div style="background:#fafafa;border:1.5px solid var(--border);border-radius:12px;padding:16px;">
+            <div style="font-size:13px;font-weight:700;color:var(--charcoal);margin-bottom:10px;">Salvar como protocolo para reutilizar</div>
+            <input class="form-input" id="nomeProtocoloInput" placeholder="Ex: Protocolo Detox, Imunidade, Pos-cirurgico..." style="margin-bottom:10px;">
+            <div style="display:flex;gap:8px;">
+              <button onclick="salvarProtocoloWeb()" style="flex:1;padding:12px;border:none;border-radius:10px;background:var(--sage);color:white;font-weight:700;font-size:14px;cursor:pointer;">Salvar protocolo</button>
+              <button onclick="usarAgora()" style="flex:1;padding:12px;border:1.5px solid var(--sage);border-radius:10px;background:white;color:var(--sage);font-weight:700;font-size:14px;cursor:pointer;">Usar agora</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--light);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px;">Protocolos salvos</div>
+        <div id="protocolosList">
+          <div class="empty" style="padding:40px 20px;text-align:center;">
+            <div style="font-size:32px;margin-bottom:12px;">📋</div>
+            <div class="empty-title">Nenhum protocolo salvo</div>
+            <div class="empty-sub">Importe sua primeira receita acima</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- PERFIL DO MÉDICO -->
@@ -959,14 +1027,14 @@ async function loadDoctorProfile(){
 function showApp(){
   document.getElementById('authWrap').style.display='none';
   document.getElementById('appWrap').style.display='flex';
-  loadDashboard();loadPatients();loadProducts();
+  loadDashboard();loadPatients();loadProducts();loadProtocolos();
 }
 
 function showPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
-  const navMap={dashboard:0,'new-rec':1,history:2,patients:3,products:4,'meal-plan':5};
+  const navMap={dashboard:0,'new-rec':1,history:2,patients:3,products:4,'meal-plan':5,protocolos:6};
   const navItems=document.querySelectorAll('.nav-item');
   if(navMap[page]!==undefined&&navItems[navMap[page]])navItems[navMap[page]].classList.add('active');
   if(page==='dashboard')loadDashboard();
@@ -978,6 +1046,7 @@ function showPage(page){
   if(page==='profile')loadProfile();
   if(page==='acompanhamento')loadAcompanhamento();
   if(page==='calendario')loadCalendario();
+  if(page==='protocolos')loadProtocolos();
 }
 
 // ── ACOMPANHAMENTO ──
@@ -2803,6 +2872,154 @@ async function verPlanoAlimentar(id){
   if(plano.notes)html+=`<div style="background:#fff8ed;border-radius:10px;padding:14px;margin-top:8px;"><div style="font-size:12px;font-weight:700;color:#f5a623;margin-bottom:4px;">OBSERVAÇÕES</div><div style="font-size:14px;color:#7a5c2e;">${plano.notes}</div></div>`;
   html+=`</div></div></div>`;
   const div=document.createElement('div');div.innerHTML=html;document.body.appendChild(div.firstChild);
+}
+
+// ─── PROTOCOLOS ──────────────────────────────────────────────────────────────
+let protocolosCache = [];
+let itensImportadosCache = null;
+
+document.addEventListener('input', function(e) {
+  if (e.target && e.target.id === 'textoImportInput') {
+    document.getElementById('btnExtrair').disabled = !e.target.value.trim();
+  }
+});
+
+async function loadProtocolos() {
+  if (!currentDoctor) return;
+  const { data } = await sb.from('doctor_templates').select('*').eq('doctor_id', currentDoctor.id).order('created_at', { ascending: false });
+  protocolosCache = data || [];
+  renderProtocolos();
+  const bar = document.getElementById('protocoloQuickBar');
+  if (bar) bar.style.display = protocolosCache.length ? 'flex' : 'none';
+}
+
+function renderProtocolos() {
+  const el = document.getElementById('protocolosList');
+  if (!el) return;
+  if (!protocolosCache.length) {
+    el.innerHTML = '<div class="empty" style="padding:40px 20px;text-align:center;"><div style="font-size:32px;margin-bottom:12px;">📋</div><div class="empty-title">Nenhum protocolo salvo</div><div class="empty-sub">Importe sua primeira receita acima</div></div>';
+    return;
+  }
+  el.innerHTML = protocolosCache.map((p, idx) => {
+    const itens = p.items || [];
+    const preview = itens.slice(0, 3).map(item =>
+      '<div class="protocolo-item">' + item.nome + (item.dosagem ? ' · ' + item.dosagem : '') + (item.frequencia ? ' · ' + item.frequencia : '') + '</div>'
+    ).join('');
+    const mais = itens.length > 3 ? '<div style="font-size:11px;color:var(--light);margin-top:4px;">+' + (itens.length - 3) + ' mais...</div>' : '';
+    return '<div class="protocolo-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;"><div class="protocolo-nome">' + p.name + '</div><div class="protocolo-count">' + itens.length + ' produto(s)</div>' + preview + mais + '</div><button onclick="confirmarDeletarProtocolo(\'' + p.id + '\',' + idx + ')" style="background:none;border:none;cursor:pointer;color:var(--light);font-size:18px;padding:0 0 0 10px;" title="Excluir">🗑</button></div><div class="protocolo-actions"><button onclick="aplicarProtocoloWeb(' + idx + ')" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--sage);color:white;font-weight:700;font-size:13px;cursor:pointer;width:100%;">Usar na receita →</button></div></div>';
+  }).join('');
+}
+
+async function extrairProtocoloIA() {
+  const texto = document.getElementById('textoImportInput').value.trim();
+  if (!texto) return;
+  const btn = document.getElementById('btnExtrair');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Extraindo com IA...';
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session ? session.access_token : SUPABASE_KEY;
+    const res = await fetch(SUPABASE_URL + '/functions/v1/parse-receita-texto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ texto }),
+    });
+    const itens = await res.json();
+    if (!Array.isArray(itens) || !itens.length) {
+      showToast('Nenhum produto encontrado. Tente colar um texto com nomes de medicamentos ou suplementos.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = 'Extrair com IA';
+      return;
+    }
+    itensImportadosCache = itens;
+    document.getElementById('importFoundMsg').textContent = itens.length + ' produto(s) identificado(s)';
+    document.getElementById('importPreviewList').innerHTML = itens.map(function(item) {
+      const detalhe = [item.dosagem, item.frequencia, item.duracao].filter(Boolean).join(' · ') || 'Sem posologia informada';
+      return '<div class="protocolo-preview-item"><div class="protocolo-preview-nome">' + item.nome + '</div><div class="protocolo-preview-detalhe">' + detalhe + '</div></div>';
+    }).join('');
+    document.getElementById('importStep1').style.display = 'none';
+    document.getElementById('importStep2').style.display = 'block';
+  } catch(e) {
+    showToast('Erro ao extrair. Verifique sua conexão.', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = 'Extrair com IA';
+}
+
+function voltarImportStep1() {
+  itensImportadosCache = null;
+  document.getElementById('importStep1').style.display = 'block';
+  document.getElementById('importStep2').style.display = 'none';
+}
+
+async function salvarProtocoloWeb() {
+  const nome = document.getElementById('nomeProtocoloInput').value.trim();
+  if (!nome) return showToast('Digite um nome para o protocolo', 'error');
+  if (!itensImportadosCache || !itensImportadosCache.length) return;
+  const { data, error } = await sb.from('doctor_templates').insert([{
+    doctor_id: currentDoctor.id, name: nome, items: itensImportadosCache,
+  }]).select().single();
+  if (error) return showToast('Erro ao salvar: ' + error.message, 'error');
+  protocolosCache.unshift(data);
+  renderProtocolos();
+  document.getElementById('textoImportInput').value = '';
+  document.getElementById('nomeProtocoloInput').value = '';
+  document.getElementById('importStep1').style.display = 'block';
+  document.getElementById('importStep2').style.display = 'none';
+  itensImportadosCache = null;
+  const bar = document.getElementById('protocoloQuickBar');
+  if (bar) bar.style.display = 'flex';
+  showToast('"' + nome + '" salvo nos seus protocolos!', 'success');
+}
+
+async function usarAgora() {
+  if (!itensImportadosCache || !itensImportadosCache.length) return;
+  await aplicarProtocoloItems(itensImportadosCache);
+}
+
+async function aplicarProtocoloWeb(idx) {
+  const protocolo = protocolosCache[idx];
+  if (!protocolo) return;
+  await aplicarProtocoloItems(protocolo.items);
+}
+
+async function aplicarProtocoloItems(itens) {
+  resetNewRec();
+  let adicionados = 0;
+  for (var i = 0; i < itens.length; i++) {
+    var item = itens[i];
+    var nomeLower = removeAcentos((item.nome || '').toLowerCase());
+    var produto = allProducts.find(function(p) {
+      return removeAcentos(p.name.toLowerCase()).includes(nomeLower.slice(0,6)) || nomeLower.includes(removeAcentos(p.name.toLowerCase()).slice(0,6));
+    });
+    if (!produto && item.nome) {
+      var ins = await sb.from('products').insert([{ name: item.nome, category: 'Outros', doctor_id: currentDoctor.id }]).select().single();
+      if (ins.data) { allProducts.push(ins.data); produto = ins.data; }
+    }
+    if (produto) {
+      selectedProducts.push({ tipo:'pronto', product:produto, dosage:item.dosagem||'', frequency:item.frequencia||'', duration:item.duracao||'', return_date:null, notes:'', marcas_sugeridas:null });
+      adicionados++;
+    }
+  }
+  renderAddedProducts();
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  document.getElementById('page-new-rec').classList.add('active');
+  var navItems = document.querySelectorAll('.nav-item');
+  if (navItems[1]) navItems[1].classList.add('active');
+  goToStep(2);
+  showToast(adicionados + ' produto(s) pre-carregado(s)! Volte ao passo 1 para selecionar o paciente.', 'success');
+}
+
+function confirmarDeletarProtocolo(id, idx) {
+  if (!confirm('Excluir este protocolo?')) return;
+  sb.from('doctor_templates').delete().eq('id', id).then(function() {
+    protocolosCache.splice(idx, 1);
+    renderProtocolos();
+    const bar = document.getElementById('protocoloQuickBar');
+    if (bar) bar.style.display = protocolosCache.length ? 'flex' : 'none';
+    showToast('Protocolo excluido', 'success');
+  });
 }
 </script>
 
