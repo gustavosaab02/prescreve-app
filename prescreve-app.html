@@ -2012,43 +2012,68 @@ async function sendRecommendation(){
   recs.forEach(r=>allRecommendations.unshift(r));resetNewRec();showPage('dashboard');
 }
 
-// CORRIGIDO: link usa doctor_id + patient_id para mostrar TODAS as recomendações
 function buildWhatsAppMessage(patName,recs,patientId){
   const rawName=currentDoctor?.name||'';const specialty=currentDoctor?.specialty||'';
   const hasTitle=/^dr\.?\s|^dra\.?\s/i.test(rawName.trim());
   const docTitle=hasTitle?rawName:('Dr. '+rawName);
   const patientLink='https://synkasaude.com.br/prescreve-patient.html?doctor='+currentDoctor.id+'&patient='+patientId;
   const firstName=patName.split(' ')[0];
+  const sep='━━━━━━━━━━━━━━━━━━━━';
 
   let msg='Olá, *'+firstName+'*! 👋\n\n';
-  msg+=docTitle+(specialty?' — '+specialty:'')+' preparou '+(recs.length>1?recs.length+' recomendações':'uma recomendação')+' para você:\n\n';
+  msg+=docTitle+(specialty?' — '+specialty:'')+' preparou '+(recs.length>1?recs.length+' recomendações':'uma recomendação')+' para você.\n\n';
+  msg+=sep+'\n\n';
 
-  recs.forEach((rec,i)=>{
-    const isComp=!!rec._compFormula;
-    const num = recs.length > 1 ? (i+1)+'. ' : '';
-    if(isComp){
-      const f=rec._compFormula;
-      msg+=num+'💊 *'+f.nome+'* _(Manipulado)_\n';
-      if(f.dosage)msg+='   › Aplicação: '+f.dosage+'\n';
-      if(f.frequency)msg+='   › Frequência: '+f.frequency+'\n';
-      if(f.duration)msg+='   › Duração: '+f.duration+'\n';
-      if(f.notes)msg+='   › Obs: '+f.notes+'\n';
-      msg+='   _Farmácia entrará em contato com o orçamento._\n';
-    } else {
+  const prontos=recs.filter(r=>!r._compFormula);
+  const manips=recs.filter(r=>!!r._compFormula);
+
+  if(prontos.length){
+    msg+='💊 *PRODUTOS*\n\n';
+    prontos.forEach((rec,i)=>{
       const product=rec.products;
-      msg+=num+'💊 *'+product.name+'*'+(product.brand?' ('+product.brand+')':'')+'\n';
-      if(rec.dosage)msg+='   › Dosagem: '+rec.dosage+'\n';
-      if(rec.frequency)msg+='   › Frequência: '+rec.frequency+'\n';
-      if(rec.duration)msg+='   › Duração: '+rec.duration+'\n';
-      if(rec.return_date)msg+='   › 📅 Retorno: '+formatDate(rec.return_date+'T12:00:00')+'\n';
-      if(rec.notes)msg+='   › Obs: '+rec.notes+'\n';
-    }
-    if(i<recs.length-1)msg+='\n';
-  });
+      msg+='*'+(i+1)+'. '+product.name+'*'+(product.brand&&product.brand!=='Manipulado'?' ('+product.brand+')':'')+'\n';
+      if(rec.dosage)msg+='   Dosagem: '+rec.dosage+'\n';
+      if(rec.frequency)msg+='   Frequência: '+rec.frequency+'\n';
+      if(rec.duration)msg+='   Duração: '+rec.duration+'\n';
+      if(rec.return_date)msg+='   📅 Retorno: '+formatDate(rec.return_date+'T12:00:00')+'\n';
+      const notesObj=rec.notes?tryParseNotes(rec.notes):null;
+      const obsText=notesObj?notesObj.obs:rec.notes;
+      if(obsText)msg+='   Obs: '+obsText+'\n';
+      const marcas=notesObj?.marcas;
+      if(marcas&&marcas.length)msg+='   Marcas sugeridas: '+marcas.map(m=>m.nome).join(', ')+'\n';
+      msg+='\n';
+    });
+  }
 
-  msg+='\n📱 *Acesse suas recomendações:*\n'+patientLink;
-  msg+='\n\n_synka — saúde conectada_';
+  if(manips.length){
+    if(prontos.length)msg+=sep+'\n\n';
+    msg+='⚗️ *MANIPULADOS*\n\n';
+    manips.forEach((rec,i)=>{
+      const f=rec._compFormula;
+      msg+='*'+(i+1)+'. '+f.nome+'*\n';
+      if(f.componentes&&f.componentes.length){
+        const compsTexto=f.componentes.filter(c=>c.nome).map(c=>c.nome+(c.conc?' '+c.conc:'')).join(' + ');
+        if(compsTexto)msg+='   Fórmula: '+compsTexto+'\n';
+      }
+      if(f.veiculo)msg+='   Veículo: '+f.veiculo+'\n';
+      if(f.qtd)msg+='   Quantidade: '+f.qtd+'\n';
+      if(f.dosage)msg+='   Posologia: '+f.dosage+'\n';
+      if(f.frequency)msg+='   Frequência: '+f.frequency+'\n';
+      if(f.duration)msg+='   Duração: '+f.duration+'\n';
+      if(f.notes)msg+='   Obs: '+f.notes+'\n';
+      msg+='   _A farmácia parceira entrará em contato com o orçamento._\n\n';
+    });
+  }
+
+  msg+=sep+'\n\n';
+  msg+='📱 *Acesse suas recomendações pelo app:*\n'+patientLink;
+  msg+='\n\n_synka — saúde conectada_ 🌿';
   return msg;
+}
+
+function tryParseNotes(notes){
+  try{ const p=JSON.parse(notes); if(p&&typeof p==='object')return p; }catch(e){}
+  return null;
 }
 
 async function resendWhatsapp(recId){
