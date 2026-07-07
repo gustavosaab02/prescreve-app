@@ -190,6 +190,7 @@ tr:hover td { background:#fafef9; }
 .protocolo-preview-item { background:var(--sage-pale); border-left:3px solid var(--sage); border-radius:0 10px 10px 0; padding:10px 14px; margin-bottom:8px; }
 .protocolo-preview-nome { font-size:14px; font-weight:700; color:var(--charcoal); margin-bottom:2px; }
 .protocolo-preview-detalhe { font-size:12px; color:var(--mid); }
+@keyframes pulse-sage { 0%,100%{box-shadow:0 0 0 0 rgba(74,124,111,0.4)} 50%{box-shadow:0 0 0 6px rgba(74,124,111,0)} }
 </style>
 </head>
 <body>
@@ -330,7 +331,10 @@ tr:hover td { background:#fafef9; }
               <div class="form-group form-full"><label class="form-label">E-mail (opcional)</label><input class="form-input" id="newPatientEmail" placeholder="paciente@email.com"></div>
               <div class="form-group"><label class="form-label">CPF</label><input class="form-input" id="newPatientCpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCpf(this)"></div>
             </div>
-            <div style="display:flex;justify-content:flex-end;"><button class="btn btn-sage" onclick="goToStep2()">Próximo: Produtos →</button></div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px;">
+              <button id="btnUsarProtocolo" class="btn btn-secondary" style="display:none;" onclick="abrirPickerProtocolo()">📋 Usar protocolo salvo</button>
+              <button class="btn btn-sage" onclick="goToStep2()">Próximo: Produtos →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -647,6 +651,16 @@ tr:hover td { background:#fafef9; }
         <button onclick="abrirSettingsMedico()" class="btn btn-sage" style="width:100%;">⚙️ Editar dados</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- MODAL ESCOLHER PROTOCOLO -->
+<div class="modal-overlay" id="modalEscolherProtocolo">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-title">Usar protocolo salvo</div>
+    <div class="modal-sub">Escolha um protocolo — os produtos serão adicionados automaticamente</div>
+    <div id="protocolosListPicker" style="max-height:420px;overflow-y:auto;margin:16px 0;"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modalEscolherProtocolo')">Cancelar</button></div>
   </div>
 </div>
 
@@ -3016,6 +3030,71 @@ async function loadProtocolos() {
   renderProtocolos();
   const bar = document.getElementById('protocoloQuickBar');
   if (bar) bar.style.display = protocolosCache.length ? 'flex' : 'none';
+  const btn = document.getElementById('btnUsarProtocolo');
+  if (btn) btn.style.display = protocolosCache.length ? 'inline-flex' : 'none';
+}
+
+let protocoloPreSelecionadoIdx = null;
+
+function irParaNovaRecComProtocolo(idx) {
+  protocoloPreSelecionadoIdx = idx;
+  showPage('new-rec');
+  // Destaca o botão de protocolo para o médico saber que precisa selecionar o paciente
+  setTimeout(function() {
+    const btn = document.getElementById('btnUsarProtocolo');
+    if (btn) {
+      btn.style.display = 'inline-flex';
+      btn.style.animation = 'pulse-sage 1s ease 2';
+    }
+    showToast('Agora selecione o paciente e clique em "Usar protocolo salvo"', 'success');
+  }, 200);
+}
+
+function abrirPickerProtocolo() {
+  const patName = selectedPatient ? selectedPatient.name : document.getElementById('newPatientName').value.trim();
+  if (!patName) return showToast('Selecione ou preencha o nome do paciente primeiro', 'error');
+  if (!protocolosCache.length) return showToast('Nenhum protocolo salvo. Va em Protocolos para importar.', 'error');
+  const el = document.getElementById('protocolosListPicker');
+  el.innerHTML = protocolosCache.map(function(p, idx) {
+    const itens = p.items || [];
+    const preview = itens.slice(0, 3).map(function(item) {
+      return '<div style="font-size:12px;color:var(--mid);padding:2px 0 2px 8px;border-left:2px solid var(--sage-light);margin-bottom:2px;">' + item.nome + (item.dosagem ? ' · ' + item.dosagem : '') + '</div>';
+    }).join('');
+    const mais = itens.length > 3 ? '<div style="font-size:11px;color:var(--light);margin-top:3px;">+' + (itens.length - 3) + ' mais...</div>' : '';
+    return '<div style="border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--sage)\'" onmouseout="this.style.borderColor=\'var(--border)\'" onclick="aplicarProtocoloStep1(' + idx + ')">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">' +
+      '<div style="font-size:15px;font-weight:700;color:var(--charcoal);">' + p.name + '</div>' +
+      '<div style="font-size:12px;color:var(--light);">' + itens.length + ' produto(s)</div></div>' +
+      preview + mais +
+      '<div style="margin-top:12px;background:var(--sage);color:white;border-radius:8px;padding:8px 14px;text-align:center;font-size:13px;font-weight:700;">Selecionar este →</div>' +
+      '</div>';
+  }).join('');
+  openModal('modalEscolherProtocolo');
+}
+
+async function aplicarProtocoloStep1(idx) {
+  closeModal('modalEscolherProtocolo');
+  const protocolo = protocolosCache[idx];
+  if (!protocolo) return;
+  showToast('Carregando ' + protocolo.name + '...', 'success');
+  selectedProducts = [];
+  for (var i = 0; i < protocolo.items.length; i++) {
+    var item = protocolo.items[i];
+    var nomeLower = removeAcentos((item.nome || '').toLowerCase());
+    var produto = allProducts.find(function(p) {
+      return removeAcentos(p.name.toLowerCase()).includes(nomeLower.slice(0, 6)) ||
+             nomeLower.includes(removeAcentos(p.name.toLowerCase()).slice(0, 6));
+    });
+    if (!produto && item.nome) {
+      var ins = await sb.from('products').insert([{ name: item.nome, category: 'Outros', doctor_id: currentDoctor.id }]).select().single();
+      if (ins.data) { allProducts.push(ins.data); produto = ins.data; }
+    }
+    if (produto) {
+      selectedProducts.push({ tipo: 'pronto', product: produto, dosage: item.dosagem || '', frequency: item.frequencia || '', duration: item.duracao || '', return_date: null, notes: '', marcas_sugeridas: null });
+    }
+  }
+  if (!selectedProducts.length) return showToast('Nenhum produto encontrado no protocolo', 'error');
+  goToStep3();
 }
 
 function renderProtocolos() {
@@ -3031,7 +3110,7 @@ function renderProtocolos() {
       '<div class="protocolo-item">' + item.nome + (item.dosagem ? ' · ' + item.dosagem : '') + (item.frequencia ? ' · ' + item.frequencia : '') + '</div>'
     ).join('');
     const mais = itens.length > 3 ? '<div style="font-size:11px;color:var(--light);margin-top:4px;">+' + (itens.length - 3) + ' mais...</div>' : '';
-    return '<div class="protocolo-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;"><div class="protocolo-nome">' + p.name + '</div><div class="protocolo-count">' + itens.length + ' produto(s)</div>' + preview + mais + '</div><button onclick="confirmarDeletarProtocolo(\'' + p.id + '\',' + idx + ')" style="background:none;border:none;cursor:pointer;color:var(--light);font-size:18px;padding:0 0 0 10px;" title="Excluir">🗑</button></div><div class="protocolo-actions"><button onclick="aplicarProtocoloWeb(' + idx + ')" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--sage);color:white;font-weight:700;font-size:13px;cursor:pointer;width:100%;">Usar na receita →</button></div></div>';
+    return '<div class="protocolo-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;"><div class="protocolo-nome">' + p.name + '</div><div class="protocolo-count">' + itens.length + ' produto(s)</div>' + preview + mais + '</div><button onclick="confirmarDeletarProtocolo(\'' + p.id + '\',' + idx + ')" style="background:none;border:none;cursor:pointer;color:var(--light);font-size:18px;padding:0 0 0 10px;" title="Excluir">🗑</button></div><div class="protocolo-actions"><button onclick="irParaNovaRecComProtocolo(' + idx + ')" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--sage);color:white;font-weight:700;font-size:13px;cursor:pointer;width:100%;">Usar na receita →</button></div></div>';
   }).join('');
 }
 
