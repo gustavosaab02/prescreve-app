@@ -1059,6 +1059,21 @@ function showApp(){
   document.getElementById('authWrap').style.display='none';
   document.getElementById('appWrap').style.display='flex';
   loadDashboard();loadPatients();loadProducts();loadProtocolos();
+  setTimeout(verificarOnboarding, 800);
+}
+
+function verificarOnboarding(){
+  if(!currentUser) return;
+  const key = 'synka_ob_' + currentUser.id;
+  if(localStorage.getItem(key)) return;
+  const nome = currentDoctor?.name?.split(' ')[0] || 'Doutor(a)';
+  document.getElementById('onboardingNome').textContent = 'Olá, ' + nome + '!';
+  document.getElementById('modal-onboarding').style.display = 'flex';
+}
+
+function fecharOnboarding(){
+  document.getElementById('modal-onboarding').style.display = 'none';
+  if(currentUser) localStorage.setItem('synka_ob_' + currentUser.id, '1');
 }
 
 function showPage(page){
@@ -3415,6 +3430,44 @@ async function salvarEdicaoProtocolo() {
   showToast('Protocolo atualizado!', 'success');
 }
 </script>
+
+<!-- MODAL ONBOARDING -->
+<div id="modal-onboarding" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2000;align-items:center;justify-content:center;">
+  <div style="background:white;max-width:480px;width:calc(100% - 32px);border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+    <div style="background:linear-gradient(135deg,var(--sage-dark),var(--sage));padding:28px 28px 24px;">
+      <div style="font-size:28px;margin-bottom:8px;">👋</div>
+      <div id="onboardingNome" style="color:white;font-size:20px;font-weight:700;margin-bottom:4px;"></div>
+      <div style="color:rgba(255,255,255,0.75);font-size:14px;">Bem-vindo à Synka. Veja como começar:</div>
+    </div>
+    <div style="padding:24px 28px;">
+      <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:24px;">
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:var(--sage-pale);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">✏️</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--charcoal);margin-bottom:2px;">Complete seu perfil</div>
+            <div style="font-size:12px;color:var(--light);">Adicione sua especialidade e CRM — aparecem nas recomendações para os pacientes</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:var(--sage-pale);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">👤</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--charcoal);margin-bottom:2px;">Adicione um paciente</div>
+            <div style="font-size:12px;color:var(--light);">Cadastre pelo nome e WhatsApp — ele recebe tudo no celular automaticamente</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:14px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:var(--sage-pale);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💊</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--charcoal);margin-bottom:2px;">Envie sua primeira recomendação</div>
+            <div style="font-size:12px;color:var(--light);">Selecione paciente, adicione produtos e envie — o paciente recebe cotação da farmácia em minutos</div>
+          </div>
+        </div>
+      </div>
+      <button onclick="fecharOnboarding()" style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--sage);color:white;font-size:15px;font-weight:700;cursor:pointer;">Vamos começar! →</button>
+      <div style="text-align:center;margin-top:10px;"><button onclick="fecharOnboarding()" style="background:none;border:none;color:var(--light);font-size:12px;cursor:pointer;">Já conheço a plataforma</button></div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL EDITAR PROTOCOLO -->
 <div id="modal-editar-protocolo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;align-items:flex-start;justify-content:center;">

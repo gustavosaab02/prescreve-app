@@ -9,6 +9,22 @@ const ZAPI_TOKEN = Deno.env.get('ZAPI_TOKEN') || '';
 const ZAPI_CLIENT_TOKEN = Deno.env.get('ZAPI_CLIENT_TOKEN') || '';
 // Configurar em: Painel MP → Configurações → Notificações → Chave secreta
 const MP_WEBHOOK_SECRET = Deno.env.get('MP_WEBHOOK_SECRET') || '';
+const ZAPI_URL = `https://api.z-api.io/instances/${ZAPI_INSTANCE}/token/${ZAPI_TOKEN}`;
+
+async function alertarErro(contexto: string, err: unknown) {
+  const alertWa = Deno.env.get("ALERT_WA");
+  if (!alertWa || !ZAPI_INSTANCE || !ZAPI_TOKEN) return;
+  try {
+    await fetch(`${ZAPI_URL}/send-text`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Client-Token": ZAPI_CLIENT_TOKEN },
+      body: JSON.stringify({
+        phone: "55" + alertWa.replace(/\D/g, ""),
+        message: `🚨 *Erro Synka — ${contexto}*\n\n${String(err)}\n\n${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`
+      })
+    });
+  } catch(_) {}
+}
 
 // Verifica assinatura HMAC-SHA256 enviada pelo Mercado Pago.
 // Retorna true se válida ou se MP_WEBHOOK_SECRET não estiver configurado (graceful degradation).
@@ -75,7 +91,7 @@ serve(async (req) => {
     if (payment.status === 'approved') {
       const { data: cotacao } = await sb
         .from('cotacoes')
-        .select('*, recommendations:recommendation_id(*, patients:patient_id(name, email, whatsapp, address))')
+        .select('*, recommendations:recommendation_id(*, patients:patient_id(name, email, whatsapp, address, cpf))')
         .eq('id', finalCotacaoId)
         .single();
       if (cotacao) {
@@ -85,7 +101,10 @@ serve(async (req) => {
         const valorFarmacia = parseFloat(cotacao.valor_farmacia || 0).toFixed(2).replace('.', ',');
 
         // WhatsApp farmácia
-        const msgFarmacia = `✅ *PAGAMENTO CONFIRMADO — Synka*\n\n📋 *Pedido:* ${numeroPedido}\n👤 *Paciente:* ${paciente?.name}\n📍 *Endereço:*\n${paciente?.address || 'Não informado'}\n\n💰 *Valor total:* R$ ${valorTotal}\n   → *Seu repasse: R$ ${valorFarmacia}*\n\n⏰ Prazo: ${cotacao.prazo || 'não informado'}\n\nPor favor, confirme respondendo *CONFIRMO*.`;
+        const cpfFormatado = paciente?.cpf
+          ? paciente.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+          : 'Não informado';
+        const msgFarmacia = `✅ *PAGAMENTO CONFIRMADO — Synka*\n\n📋 *Pedido:* ${numeroPedido}\n👤 *Paciente:* ${paciente?.name}\n🪪 *CPF:* ${cpfFormatado}\n📍 *Endereço:*\n${paciente?.address || 'Não informado'}\n\n💰 *Valor total:* R$ ${valorTotal}\n   → *Seu repasse: R$ ${valorFarmacia}*\n\n⏰ Prazo: ${cotacao.prazo || 'não informado'}\n\nPor favor, confirme respondendo *CONFIRMO*.`;
         if (cotacao.farmacia_wa && ZAPI_INSTANCE && ZAPI_TOKEN) {
           const num = cotacao.farmacia_wa.replace(/\D/g, '');
           const numBR = num.startsWith('55') ? num : '55' + num;
@@ -121,6 +140,52 @@ serve(async (req) => {
           }).catch(e => console.log('Email error:', e));
         }
 
+        // PIX automático para farmácia
+        const valorFarmaciaNum = parseFloat(cotacao.valor_farmacia || 0);
+        if (valorFarmaciaNum > 0 && cotacao.farmacia_wa) {
+          const waNum = cotacao.farmacia_wa.replace(/\D/g, '').replace(/^55/, '');
+          const { data: farmacia } = await sb
+            .from('farmacias_parceiras')
+            .select('pix_key, pix_key_type, nome')
+            .eq('whatsapp', waNum)
+            .single();
+
+          if (farmacia?.pix_key) {
+            const mpTransferRes = await fetch('https://api.mercadopago.com/v1/bank-transfers', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+                'X-Idempotency-Key': `repasse-${finalCotacaoId}`,
+              },
+              body: JSON.stringify({
+                amount: valorFarmaciaNum,
+                currency_id: 'BRL',
+                description: `Repasse Synka — Pedido ${numeroPedido}`,
+                pix: {
+                  key: farmacia.pix_key,
+                  key_type: farmacia.pix_key_type || 'cnpj',
+                },
+              }),
+            });
+            const mpTransferData = await mpTransferRes.json();
+            console.log('PIX repasse status:', mpTransferRes.status, JSON.stringify(mpTransferData));
+
+            if (mpTransferRes.ok) {
+              await sb.from('cotacoes').update({
+                repasse_enviado: true,
+                repasse_id: mpTransferData.id?.toString(),
+              }).eq('id', finalCotacaoId);
+              console.log('✅ PIX repasse enviado:', mpTransferData.id);
+            } else {
+              console.error('❌ PIX repasse falhou:', JSON.stringify(mpTransferData));
+              await alertarErro("mp-webhook: PIX repasse falhou", `Pedido ${numeroPedido} — ${JSON.stringify(mpTransferData)}`);
+            }
+          } else {
+            console.log('⚠️ Farmácia sem PIX key cadastrado, repasse manual necessário:', cotacao.farmacia_wa);
+          }
+        }
+
         await sb.from('cotacoes').update({ status: 'em_preparo' }).eq('id', finalCotacaoId);
         console.log('✅ em_preparo, notificações enviadas');
       }
@@ -128,6 +193,7 @@ serve(async (req) => {
     return new Response('ok', { status: 200 });
   } catch (e) {
     console.error('Webhook error:', e);
+    await alertarErro("mp-webhook", e);
     return new Response('error', { status: 500 });
   }
 });
