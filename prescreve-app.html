@@ -406,7 +406,8 @@ tr:hover td { background:#fafef9; }
                 <div class="form-group"><label class="form-label">Duração</label><input class="form-input" id="compDuration" placeholder="ex: 3 meses"></div>
                 <div class="form-group"><label class="form-label">Observações ao paciente</label><textarea class="form-textarea" id="compNotes" placeholder="Instruções de aplicação, armazenamento..." style="min-height:60px;"></textarea></div>
               </div>
-              <button class="btn btn-secondary" style="width:100%;margin-top:4px;" onclick="addProductToList()">+ Adicionar este produto</button>
+              <button id="btnAddProduct" class="btn btn-secondary" style="width:100%;margin-top:4px;" onclick="addProductToList()">+ Adicionar este produto</button>
+              <button id="btnCancelarEdicao" style="display:none;width:100%;margin-top:6px;padding:8px;border:none;background:none;color:var(--light);font-size:13px;cursor:pointer;text-decoration:underline;" onclick="cancelarEdicaoProduto()">Cancelar edição</button>
             </div>
             <div style="display:flex;justify-content:space-between;">
               <button class="btn btn-ghost" onclick="goToStep(1)">← Voltar</button>
@@ -1734,6 +1735,7 @@ function resetNewRec(){
 }
 
 function addProductToList(){
+  const modoEdicao = editandoProdutoIdx !== null;
   if(tipoProdutoAtual==='pronto'){
     if(!selectedProduct)return showToast('Selecione um produto primeiro','error');
     // Verifica se é controlado
@@ -1758,7 +1760,7 @@ function addProductToList(){
       });
       return;
     }
-    selectedProducts.push({
+    const novoPronto = {
       tipo:'pronto',product:selectedProduct,
       dosage:document.getElementById('recDosage').value.trim(),
       frequency:document.getElementById('recFrequency').value.trim(),
@@ -1766,7 +1768,8 @@ function addProductToList(){
       return_date:document.getElementById('recReturnDate').value||null,
       notes:document.getElementById('recNotes').value.trim(),
       marcas_sugeridas: selectedMarcas.length ? selectedMarcas.map(m=>({id:m.id,nome:m.nome,site_url:m.site_url})) : null
-    });
+    };
+    if(modoEdicao){selectedProducts.splice(editandoProdutoIdx,1,novoPronto);}else{selectedProducts.push(novoPronto);}
     selectedMarcas=[];renderMarcasSelecionadas();
     selectedProduct=null;
     document.getElementById('productSearch').value='';document.getElementById('recDosage').value='';
@@ -1778,7 +1781,7 @@ function addProductToList(){
     if(!nome)return showToast('Preencha o nome do manipulado','error');
     const comps=compComponentes.filter(c=>c.nome.trim());
     if(!comps.length)return showToast('Adicione pelo menos um componente','error');
-    selectedProducts.push({tipo:'comp',formula:{
+    const novoComp = {tipo:'comp',formula:{
       nome,componentes:comps,
       veiculo:document.getElementById('compVeiculo')?.value||'',
       qtd:document.getElementById('compQtd')?.value.trim()||'',
@@ -1786,13 +1789,17 @@ function addProductToList(){
       frequency:document.getElementById('compFrequency')?.value.trim()||'',
       duration:document.getElementById('compDuration')?.value.trim()||'',
       notes:document.getElementById('compNotes')?.value.trim()||''
-    }});
+    }};
+    if(modoEdicao){selectedProducts.splice(editandoProdutoIdx,1,novoComp);}else{selectedProducts.push(novoComp);}
     document.getElementById('compNome').value='';document.getElementById('compVeiculo').value='';
     document.getElementById('compQtd').value='';document.getElementById('compDosage').value='';
     document.getElementById('compFrequency').value='';document.getElementById('compDuration').value='';
     document.getElementById('compNotes').value='';compComponentes=[{nome:'',conc:''}];renderCompComponentes();
   }
-  renderAddedProducts();showToast('Produto adicionado!','success');
+  editandoProdutoIdx=null;
+  document.getElementById('btnAddProduct').textContent='+ Adicionar este produto';
+  document.getElementById('btnCancelarEdicao').style.display='none';
+  renderAddedProducts();showToast(modoEdicao?'Fórmula atualizada!':'Produto adicionado!','success');
 }
 
 function renderAddedProducts(){
@@ -1815,12 +1822,54 @@ function renderAddedProducts(){
         ${detail?`<div style="font-size:12px;color:var(--mid);margin-top:3px;">${detail}</div>`:''}
         ${retorno}
       </div>
-      <button onclick="removeProduct(${i})" style="background:none;border:none;cursor:pointer;color:var(--light);font-size:20px;padding:0 0 0 8px;">×</button>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;margin-left:8px;">
+        <button onclick="editarProduto(${i})" style="background:none;border:1px solid ${border};border-radius:6px;cursor:pointer;color:${color};font-size:11px;font-weight:600;padding:3px 8px;">Editar</button>
+        <button onclick="removeProduct(${i})" style="background:none;border:none;cursor:pointer;color:var(--light);font-size:20px;padding:0 0 0 4px;">×</button>
+      </div>
     </div>`;
   }).join('');
 }
 
 function removeProduct(idx){selectedProducts.splice(idx,1);renderAddedProducts();}
+
+let editandoProdutoIdx = null;
+
+function editarProduto(idx) {
+  const p = selectedProducts[idx];
+  if (!p) return;
+  editandoProdutoIdx = idx;
+  if (p.tipo === 'comp') {
+    setTipoProduto('comp');
+    document.getElementById('compNome').value = p.formula.nome || '';
+    compComponentes = JSON.parse(JSON.stringify(p.formula.componentes && p.formula.componentes.length ? p.formula.componentes : [{nome:'',conc:''}]));
+    renderCompComponentes();
+    document.getElementById('compVeiculo').value = p.formula.veiculo || '';
+    document.getElementById('compQtd').value = p.formula.qtd || '';
+    document.getElementById('compDosage').value = p.formula.dosage || '';
+    document.getElementById('compFrequency').value = p.formula.frequency || '';
+    document.getElementById('compDuration').value = p.formula.duration || '';
+    document.getElementById('compNotes').value = p.formula.notes || '';
+  } else {
+    setTipoProduto('pronto');
+    selectedProduct = p.product;
+    document.getElementById('selectedProductChip').style.display = 'flex';
+    document.getElementById('selectedProductChip').innerHTML = `<span style="font-size:13px;font-weight:600;">${p.product.name}</span>`;
+    document.getElementById('recDosage').value = p.dosage || '';
+    document.getElementById('recFrequency').value = p.frequency || '';
+    document.getElementById('recDuration').value = p.duration || '';
+    document.getElementById('recReturnDate').value = p.return_date || '';
+    document.getElementById('recNotes').value = p.notes || '';
+  }
+  document.getElementById('btnAddProduct').textContent = '💾 Salvar edição';
+  document.getElementById('btnCancelarEdicao').style.display = 'block';
+  document.getElementById('addProductForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelarEdicaoProduto() {
+  editandoProdutoIdx = null;
+  document.getElementById('btnAddProduct').textContent = '+ Adicionar este produto';
+  document.getElementById('btnCancelarEdicao').style.display = 'none';
+}
 
 function goToStep(n){
   document.querySelectorAll('.step-panel').forEach(p=>p.classList.remove('active'));
