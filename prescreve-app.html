@@ -2149,26 +2149,29 @@ function newRecForPatient(id,name,whatsapp){
   document.getElementById('selectedPatientChip').style.display='block';
   document.getElementById('selectedPatientChip').innerHTML=`<div class="selected-chip"><div><div class="chip-name">${name}</div><div class="chip-detail">${whatsapp}</div></div><span class="chip-remove" onclick="clearPatient()">×</span></div>`;
   const pat=allPatients.find(p=>p.id===id);
-  mostrarAlertaAlergia(pat?.health_profile);
+  mostrarAlertaAlergia(pat?.health_profile, pat?.notes);
 }
 function clearPatient(){selectedPatient=null;document.getElementById('selectedPatientChip').style.display='none';document.getElementById('patientSearch').value='';document.getElementById('alertaAlergiaPaciente').style.display='none';}
 
-function mostrarAlertaAlergia(hp){
+function mostrarAlertaAlergia(hp, notes){
   const el=document.getElementById('alertaAlergiaPaciente');
   if(!el)return;
   const alergias=(hp?.alergias||[]).filter(a=>a&&a!=='Nenhuma conhecida');
-  if(!alergias.length){el.style.display='none';return;}
+  const temNotes=notes&&notes.trim();
+  if(!alergias.length&&!temNotes){el.style.display='none';return;}
   el.style.display='block';
-  el.innerHTML=`
-    <div style="background:#fff0f0;border:1.5px solid #ffc0c0;border-radius:10px;padding:12px 14px;margin-top:10px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span style="font-size:16px;">⚠️</span>
-        <span style="font-size:13px;font-weight:700;color:#c0392b;">Atenção: paciente tem ${alergias.length} alergia${alergias.length>1?'s':''} registrada${alergias.length>1?'s':''}</span>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;">
-        ${alergias.map(a=>`<span style="background:#ffd0d0;color:#c0392b;font-size:12px;padding:4px 10px;border-radius:20px;font-weight:600;">${a}</span>`).join('')}
-      </div>
-    </div>`;
+  let html='<div style="background:#fff0f0;border:1.5px solid #ffc0c0;border-radius:10px;padding:12px 14px;margin-top:10px;">';
+  html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:16px;">⚠️</span><span style="font-size:13px;font-weight:700;color:#c0392b;">Atenção: anotações clínicas deste paciente</span></div>';
+  if(alergias.length){
+    html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:'+( temNotes?'8':'0')+'px;">';
+    alergias.forEach(a=>{html+=`<span style="background:#ffd0d0;color:#c0392b;font-size:12px;padding:4px 10px;border-radius:20px;font-weight:600;">${a}</span>`;});
+    html+='</div>';
+  }
+  if(temNotes){
+    html+=`<div style="font-size:13px;color:#c0392b;background:#ffd0d0;border-radius:8px;padding:8px 10px;white-space:pre-wrap;">${notes.trim()}</div>`;
+  }
+  html+='</div>';
+  el.innerHTML=html;
 }
 
 function searchPatients(q){
@@ -2187,7 +2190,7 @@ function selectPatient(id,name,whatsapp){
   document.getElementById('selectedPatientChip').style.display='block';
   document.getElementById('selectedPatientChip').innerHTML=`<div class="selected-chip"><div><div class="chip-name">${name}</div><div class="chip-detail">${whatsapp}</div></div><span class="chip-remove" onclick="clearPatient()">×</span></div>`;
   const pat=allPatients.find(p=>p.id===id);
-  mostrarAlertaAlergia(pat?.health_profile);
+  mostrarAlertaAlergia(pat?.health_profile, pat?.notes);
 }
 
 function removeAcentos(str){return str.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
