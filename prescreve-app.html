@@ -3102,37 +3102,37 @@ function abrirPickerProtocolo() {
   openModal('modalEscolherProtocolo');
 }
 
-async function aplicarProtocoloStep1(idx) {
+function aplicarProtocoloStep1(idx) {
   closeModal('modalEscolherProtocolo');
   const protocolo = protocolosCache[idx];
   if (!protocolo) return;
-  showToast('Carregando ' + protocolo.name + '...', 'success');
-  selectedProducts = [];
-  for (var i = 0; i < protocolo.items.length; i++) {
-    var item = protocolo.items[i];
-    if (item.tipo === 'manipulado') {
-      var comps = (item.componentes && item.componentes.length) ? item.componentes : [{ nome: item.nome, conc: item.dosagem || '' }];
-      selectedProducts.push({ tipo: 'comp', formula: {
-        nome: item.nome, componentes: comps, veiculo: '', qtd: '',
-        dosage: item.dosagem || '', frequency: item.frequencia || '',
-        duration: item.duracao || '', notes: ''
-      }});
-    } else {
-      var nomeLower = removeAcentos((item.nome || '').toLowerCase());
-      var produto = allProducts.find(function(p) {
-        return removeAcentos(p.name.toLowerCase()).includes(nomeLower.slice(0, 6)) ||
-               nomeLower.includes(removeAcentos(p.name.toLowerCase()).slice(0, 6));
-      });
-      if (!produto && item.nome) {
-        var ins = await sb.from('products').insert([{ name: item.nome, category: 'Outros', doctor_id: currentDoctor.id }]).select().single();
-        if (ins.data) { allProducts.push(ins.data); produto = ins.data; }
-      }
-      if (produto) selectedProducts.push({ tipo: 'pronto', product: produto, dosage: item.dosagem || '', frequency: item.frequencia || '', duration: item.duracao || '', return_date: null, notes: '', marcas_sugeridas: null });
+  const itens = protocolo.items || [];
+  if (!itens.length) return showToast('Protocolo sem itens', 'error');
+
+  // Todos os itens viram componentes de uma única fórmula manipulada
+  const componentes = itens.map(function(item) {
+    return { nome: item.nome || '', conc: item.dosagem || '' };
+  });
+
+  // Posologia geral: pega do primeiro item que tiver
+  const comPos = itens.find(function(i) { return i.frequencia || i.duracao; }) || {};
+
+  selectedProducts = [{
+    tipo: 'comp',
+    formula: {
+      nome: protocolo.name,
+      componentes: componentes,
+      veiculo: '',
+      qtd: '',
+      dosage: '',
+      frequency: comPos.frequencia || '',
+      duration: comPos.duracao || '',
+      notes: ''
     }
-  }
-  if (!selectedProducts.length) return showToast('Nenhum produto encontrado no protocolo', 'error');
+  }];
+
   renderAddedProducts();
-  showToast(selectedProducts.length + ' produto(s) carregados. Revise e clique em "Confirmar e enviar →"', 'success');
+  showToast('Fórmula "' + protocolo.name + '" carregada com ' + componentes.length + ' componente(s). Revise e envie.', 'success');
 }
 
 function renderProtocolos() {
