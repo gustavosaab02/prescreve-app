@@ -332,7 +332,6 @@ tr:hover td { background:#fafef9; }
               <div class="form-group"><label class="form-label">CPF</label><input class="form-input" id="newPatientCpf" placeholder="000.000.000-00" maxlength="14" oninput="maskCpf(this)"></div>
             </div>
             <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px;">
-              <button id="btnUsarProtocolo" class="btn btn-secondary" style="display:none;" onclick="abrirPickerProtocolo()">📋 Usar protocolo salvo</button>
               <button class="btn btn-sage" onclick="goToStep2()">Próximo: Produtos →</button>
             </div>
           </div>
@@ -346,7 +345,7 @@ tr:hover td { background:#fafef9; }
           <div class="card-body">
             <div id="protocoloQuickBar" style="display:none;background:var(--sage-pale);border:1.5px solid var(--sage-light);border-radius:10px;padding:10px 14px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:10px;">
               <span style="font-size:13px;color:var(--sage-dark);font-weight:600;">📋 Pré-carregar de um protocolo?</span>
-              <button onclick="showPage('protocolos')" style="background:var(--sage);color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">Ver protocolos</button>
+              <button onclick="abrirPickerProtocolo()" style="background:var(--sage);color:white;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">Ver protocolos</button>
             </div>
             <div id="addedProductsList"></div>
             <div id="addProductForm" style="background:#fafafa;border-radius:14px;padding:16px;border:1.5px dashed var(--border);margin-bottom:16px;">
@@ -3076,29 +3075,14 @@ async function loadProtocolos() {
   renderProtocolos();
   const bar = document.getElementById('protocoloQuickBar');
   if (bar) bar.style.display = protocolosCache.length ? 'flex' : 'none';
-  const btn = document.getElementById('btnUsarProtocolo');
-  if (btn) btn.style.display = protocolosCache.length ? 'inline-flex' : 'none';
 }
 
-let protocoloPreSelecionadoIdx = null;
-
 function irParaNovaRecComProtocolo(idx) {
-  protocoloPreSelecionadoIdx = idx;
   showPage('new-rec');
-  // Destaca o botão de protocolo para o médico saber que precisa selecionar o paciente
-  setTimeout(function() {
-    const btn = document.getElementById('btnUsarProtocolo');
-    if (btn) {
-      btn.style.display = 'inline-flex';
-      btn.style.animation = 'pulse-sage 1s ease 2';
-    }
-    showToast('Agora selecione o paciente e clique em "Usar protocolo salvo"', 'success');
-  }, 200);
+  showToast('Selecione o paciente, clique em "Próximo" e depois escolha o protocolo em "Ver protocolos"', 'success');
 }
 
 function abrirPickerProtocolo() {
-  const patName = selectedPatient ? selectedPatient.name : document.getElementById('newPatientName').value.trim();
-  if (!patName) return showToast('Selecione ou preencha o nome do paciente primeiro', 'error');
   if (!protocolosCache.length) return showToast('Nenhum protocolo salvo. Va em Protocolos para importar.', 'error');
   const el = document.getElementById('protocolosListPicker');
   el.innerHTML = protocolosCache.map(function(p, idx) {
@@ -3147,7 +3131,8 @@ async function aplicarProtocoloStep1(idx) {
     }
   }
   if (!selectedProducts.length) return showToast('Nenhum produto encontrado no protocolo', 'error');
-  goToStep3();
+  renderAddedProducts();
+  showToast(selectedProducts.length + ' produto(s) carregados. Revise e clique em "Confirmar e enviar →"', 'success');
 }
 
 function renderProtocolos() {
@@ -3163,7 +3148,7 @@ function renderProtocolos() {
       '<div class="protocolo-item">' + item.nome + (item.dosagem ? ' · ' + item.dosagem : '') + (item.frequencia ? ' · ' + item.frequencia : '') + '</div>'
     ).join('');
     const mais = itens.length > 3 ? '<div style="font-size:11px;color:var(--light);margin-top:4px;">+' + (itens.length - 3) + ' mais...</div>' : '';
-    return '<div class="protocolo-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;"><div class="protocolo-nome">' + p.name + '</div><div class="protocolo-count">' + itens.length + ' produto(s)</div>' + preview + mais + '</div><button onclick="confirmarDeletarProtocolo(\'' + p.id + '\',' + idx + ')" style="background:none;border:none;cursor:pointer;color:var(--light);font-size:18px;padding:0 0 0 10px;" title="Excluir">🗑</button></div><div class="protocolo-actions"><button onclick="irParaNovaRecComProtocolo(' + idx + ')" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--sage);color:white;font-weight:700;font-size:13px;cursor:pointer;width:100%;">Usar na receita →</button></div></div>';
+    return '<div class="protocolo-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div style="flex:1;"><div class="protocolo-nome">' + p.name + '</div><div class="protocolo-count">' + itens.length + ' produto(s)</div>' + preview + mais + '</div><button onclick="confirmarDeletarProtocolo(\'' + p.id + '\',' + idx + ')" style="background:none;border:none;cursor:pointer;color:var(--light);font-size:18px;padding:0 0 0 10px;" title="Excluir">🗑</button></div><div class="protocolo-actions"><button onclick="irParaNovaRecComProtocolo(' + idx + ')" style="flex:1;padding:10px;border:none;border-radius:10px;background:var(--sage);color:white;font-weight:700;font-size:13px;cursor:pointer;">Usar na receita →</button><button onclick="abrirEditarProtocolo(' + idx + ')" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;background:white;color:var(--mid);font-weight:600;font-size:13px;cursor:pointer;">Editar</button></div></div>';
   }).join('');
 }
 
@@ -3279,7 +3264,104 @@ function confirmarDeletarProtocolo(id, idx) {
     showToast('Protocolo excluido', 'success');
   });
 }
+
+let editandoProtocoloIdx = null;
+
+function abrirEditarProtocolo(idx) {
+  const p = protocolosCache[idx];
+  if (!p) return;
+  editandoProtocoloIdx = idx;
+  document.getElementById('editProtocoloNome').value = p.name || '';
+  renderEditItens(JSON.parse(JSON.stringify(p.items || [])));
+  document.getElementById('modal-editar-protocolo').style.display = 'flex';
+}
+
+function fecharEditarProtocolo() {
+  document.getElementById('modal-editar-protocolo').style.display = 'none';
+  editandoProtocoloIdx = null;
+}
+
+function renderEditItens(itens) {
+  const el = document.getElementById('editProtocoloItens');
+  el.innerHTML = itens.map(function(item, i) {
+    return '<div style="background:#fafafa;border-radius:10px;padding:12px;margin-bottom:8px;border:1.5px solid var(--border);">' +
+      '<div style="display:flex;gap:8px;align-items:flex-start;">' +
+      '<div style="flex:1;">' +
+      '<input class="form-input" style="margin-bottom:6px;" placeholder="Nome do produto" value="' + escHtml(item.nome||'') + '" oninput="atualizarCampoItem(' + i + ',\'nome\',this.value)">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">' +
+      '<input class="form-input" placeholder="Dosagem" value="' + escHtml(item.dosagem||'') + '" oninput="atualizarCampoItem(' + i + ',\'dosagem\',this.value)">' +
+      '<input class="form-input" placeholder="Frequência" value="' + escHtml(item.frequencia||'') + '" oninput="atualizarCampoItem(' + i + ',\'frequencia\',this.value)">' +
+      '<input class="form-input" placeholder="Duração" value="' + escHtml(item.duracao||'') + '" oninput="atualizarCampoItem(' + i + ',\'duracao\',this.value)">' +
+      '</div></div>' +
+      '<button onclick="removerItemEdit(' + i + ')" style="background:none;border:none;cursor:pointer;color:#e05555;font-size:18px;padding:2px 4px;flex-shrink:0;">🗑</button>' +
+      '</div></div>';
+  }).join('');
+  el._itens = itens;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function atualizarCampoItem(idx, campo, valor) {
+  const el = document.getElementById('editProtocoloItens');
+  if (el._itens && el._itens[idx]) el._itens[idx][campo] = valor;
+}
+
+function removerItemEdit(idx) {
+  const el = document.getElementById('editProtocoloItens');
+  if (!el._itens) return;
+  el._itens.splice(idx, 1);
+  renderEditItens(el._itens);
+}
+
+function addItemEditProtocolo() {
+  const el = document.getElementById('editProtocoloItens');
+  const itens = el._itens || [];
+  itens.push({ nome: '', dosagem: '', frequencia: '', duracao: '' });
+  renderEditItens(itens);
+}
+
+async function salvarEdicaoProtocolo() {
+  if (editandoProtocoloIdx === null) return;
+  const p = protocolosCache[editandoProtocoloIdx];
+  if (!p) return;
+  const nome = document.getElementById('editProtocoloNome').value.trim();
+  if (!nome) return showToast('Digite um nome para o protocolo', 'error');
+  const el = document.getElementById('editProtocoloItens');
+  const itens = (el._itens || []).filter(function(i) { return i.nome.trim(); });
+  if (!itens.length) return showToast('Adicione pelo menos um item', 'error');
+  const { error } = await sb.from('doctor_templates').update({ name: nome, items: itens }).eq('id', p.id);
+  if (error) return showToast('Erro ao salvar: ' + error.message, 'error');
+  protocolosCache[editandoProtocoloIdx] = Object.assign({}, p, { name: nome, items: itens });
+  renderProtocolos();
+  fecharEditarProtocolo();
+  showToast('Protocolo atualizado!', 'success');
+}
 </script>
+
+<!-- MODAL EDITAR PROTOCOLO -->
+<div id="modal-editar-protocolo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;align-items:flex-start;justify-content:center;">
+  <div style="background:white;max-width:560px;width:100%;margin:40px auto;border-radius:20px;overflow:hidden;">
+    <div style="background:var(--sage-dark);padding:20px 24px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="color:white;font-size:16px;font-weight:700;">Editar protocolo</div>
+      <button onclick="fecharEditarProtocolo()" style="background:rgba(255,255,255,0.1);border:none;color:white;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;">×</button>
+    </div>
+    <div style="padding:24px;">
+      <div style="margin-bottom:18px;">
+        <label style="font-size:12px;font-weight:700;color:var(--light);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">Nome do protocolo</label>
+        <input class="form-input" id="editProtocoloNome" placeholder="Nome do protocolo">
+      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--light);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Itens</div>
+      <div id="editProtocoloItens"></div>
+      <button onclick="addItemEditProtocolo()" style="width:100%;padding:10px;border:1.5px dashed var(--border);border-radius:10px;background:none;color:var(--mid);font-size:13px;font-weight:600;cursor:pointer;margin-top:4px;">+ Adicionar item</button>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="fecharEditarProtocolo()" style="flex:1;padding:12px;border:1.5px solid var(--border);border-radius:10px;background:white;color:var(--mid);font-weight:600;font-size:14px;cursor:pointer;">Cancelar</button>
+        <button onclick="salvarEdicaoProtocolo()" style="flex:2;padding:12px;border:none;border-radius:10px;background:var(--sage);color:white;font-weight:700;font-size:14px;cursor:pointer;">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL PLANO ALIMENTAR -->
 <div id="modal-meal-plan" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;overflow-y:auto;">
